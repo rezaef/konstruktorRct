@@ -45,12 +45,12 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                 {link.name}
               </button>
             ))}
-            <button
+            {/* <button
               onClick={() => onNavigate('login')}
               className="px-6 py-2 bg-[#E89B7C] text-white rounded-md hover:bg-[#D8845F] transition-colors"
             >
               Admin Login
-            </button>
+            </button> */}
           </div>
 
           {/* Mobile Menu Button */}
@@ -83,7 +83,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
                 {link.name}
               </button>
             ))}
-            <button
+            {/* <button
               onClick={() => {
                 onNavigate('login');
                 setIsMobileMenuOpen(false);
@@ -91,7 +91,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
               className="w-full px-6 py-2 bg-[#E89B7C] text-white rounded-md hover:bg-[#D8845F] transition-colors"
             >
               Admin Login
-            </button>
+            </button> */}
           </div>
         </div>
       )}

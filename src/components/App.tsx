@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Komponen UI umum
 import { Navbar } from "./Navbar";
@@ -29,10 +29,63 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+   useEffect(() => {
+    const checkAuth = async () => {
+      const path = window.location.pathname;
+      const token = localStorage.getItem("authToken");
+
+      if (!token) {
+        // Tidak ada token → anggap belum login
+        setIsAuthenticated(false);
+        if (path === "/dashboard") {
+          setCurrentPage("login");
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch("http://localhost:4000/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error("Token invalid");
+        }
+
+        // Token valid
+        setIsAuthenticated(true);
+
+        if (path === "/dashboard") {
+          setCurrentPage("admin-dashboard");
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
+        // Token rusak / kadaluwarsa → buang
+        localStorage.removeItem("authToken");
+        setIsAuthenticated(false);
+
+        if (path === "/dashboard") {
+          setCurrentPage("login");
+        }
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+
   const handleLogin = () => {
     setIsAuthenticated(true);
     setCurrentPage("admin-dashboard");
+
+    // Ubah URL jadi /dashboard (tanpa reload)
+    if (window.location.pathname !== "/dashboard") {
+      window.history.pushState(null, "", "/dashboard");
+    }
   };
+
 
   const handleLogoutClick = () => setShowLogoutModal(true);
 
@@ -40,7 +93,16 @@ export default function App() {
     setIsAuthenticated(false);
     setShowLogoutModal(false);
     setCurrentPage("home");
+
+    // Hapus token
+    localStorage.removeItem("authToken");
+
+    // Balik ke home
+    if (window.location.pathname !== "/") {
+      window.history.pushState(null, "", "/");
+    }
   };
+
 
   const handleLogoutCancel = () => setShowLogoutModal(false);
 

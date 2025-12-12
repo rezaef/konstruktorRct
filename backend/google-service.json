@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "konstruktor-rct",
+  "private_key_id": "1159ec52a881ca20d11e12b2ccceb79e30e8f831",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC+1685Z1Mog3gN\nsrX0q+OjexeJBmQLBXZ68jFyIC5NMZGZGeAHA+pZf/iCQp2263fsukrDo0PSvjv1\nudB91+a6FywGHNy+BvUQ1RHdvtFUQNFTzMLNTBn+lyoDcK0S1GGtYszTpvdJjIQV\nMbkkAaDX3e7dc6xlLUZ4I9khPjCJLccLKvlfKfba0DUVzZgaB9MMbQp1oF74161J\n7n3Wib7PvTX9f1l5M266UO3UHYtDyCtojDmr2LPDSUb/yeuaj1CQg/twk2P+leZh\nGF+tfg5tiJBHp0i9z/5OoQPvPC59MxZuuXZYiRfSCBh7TZVDKQRoVmU62xLpfv0q\nSiBN8Mc/AgMBAAECggEAGTQEyRDzM4OBRFXYn9JfgsSLzCXS6n2zMvNvQkIruzgT\noWOAaYzD00QKPrGrgG/Ca7oCi6mxGFDVPFNozGXJ68OJpdkD8fibPrjU3jMIFBdn\nTajaBSDKwguWmdO0l6sCp1JH+J+xQr5S5zWk3LN2WWvO0uIm30nGZ7FcSH6dDFCL\n5Zu1Go9khUfVl/+3sugJbVlNmJWCMMkoE3NqEiV4894rk10VAxTCL3FAy4a+6PfR\ncY9WGlTx69HN2iTuFWmCuzwfRUc5S7xtKsRSE2yFwXBvAgPCa0FQ/+CAmFx5wSQU\nrj9baQokW25PfT9ys0UKdVaSdiHycyiNPD+kGiNskQKBgQDo8VVpN5lZ4Hnaew0D\nl50yc/m/aJwFVVI8v9Ds2zvF/jNQ1sebOmoif2u8foAndGf+F+DGMpcuq6Ml2UKE\nVSvClFtS9VeYqunXRNibJ5PPWAT//fZEn0gqrBUa1VvUW0YFU1hO+xXya8HzJnPv\nblp+Nm9pmWTR+9MHVcMgqs816QKBgQDRu4zl1byX/SMCfujvD0auCs7W7guiETeB\nQ0pkPiKqmn1mZHzAwSyVjHWOqRGXDFCi4KnN/jV5W1UJGtoY95wpyARDC63j6Fc7\nPESX9MlKeQoK9x2k75kBD7wUYM2RAvZjpnSYyTd5l4gblWviYuiPphW4+FI9WKgD\nxHhRQA7S5wKBgQDUU85Ppt9APk2z6T+2i4c9CtuWLisw7VGVkB5HF5qHYaqyv+OX\nyYoewdiZKxFzZTa5NFitMEX/w3FluYBZES1fIk2P85QR05BsqRNrcYrYj1mXYY0N\nhcaJJuvh1qLqkPvlNNAkxdd+bdyO3vkEQKl5q/Kn5asxgAIeCH1hFHDlqQKBgQDR\nMepbAXMogtRd0+pRMQKF7L/dP/kYgWXEqDLWg+eeFZSJAigxNz1aOYy0bEzgRedU\nXxTgI/SAhKnv9/mct7XrMteVbFvZHNGNgxLEIuR4RPzQbSYDcv1BQsmN5fSE9NiA\nEvLvxpxvysZ3BPZkC9X+GmJGamHVUM3dXCXKnUNr9wKBgQDThEfiTrMHkY4Q7Xcf\nk91O+4nLNJ7d4jbjIVbuace8cV2J3/HFRAYdWLwOGkuxwbTWrzPVQiJSJJNgGG3M\nagA0Clt5HPh5DoxtTKMbtaAyYjMt58jZIhY87BqBHcmD7TtjkE7u0Lar3AHmTzbv\n9hqoLNVbwcju/oWnnYHiq7iWVg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "konstruktor-service@konstruktor-rct.iam.gserviceaccount.com",
+  "client_id": "109538319490179657281",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/konstruktor-service%40konstruktor-rct.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

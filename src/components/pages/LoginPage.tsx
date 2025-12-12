@@ -1,7 +1,7 @@
-import { ImageWithFallback } from '../figma/ImageWithFallback';
-import { Lock, Mail } from 'lucide-react';
-import { useState } from 'react';
-import hdaLogo from '../../assets/login-bg.png';
+import { Lock, Mail } from "lucide-react";
+import { useState } from "react";
+import hdaLogo from "../../assets/login-bg.png";
+import { ParticleBackground } from "../effects/ParticleBackground";
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -9,115 +9,144 @@ interface LoginPageProps {
 
 export function LoginPage({ onLogin }: LoginPageProps) {
   const [credentials, setCredentials] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple demo login - accept any credentials
-    if (credentials.email && credentials.password) {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:4000/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Login gagal. Cek kembali email & password.");
+      }
+
+      if (!data?.token) {
+        throw new Error("Token tidak ditemukan di response backend.");
+      }
+
+      // Simpan token di localStorage
+      localStorage.setItem("authToken", data.token);
+
+      // Beritahu App bahwa login sukses
       onLogin();
-    } else {
-      alert('Please enter email and password');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Terjadi kesalahan saat login.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials({
-      ...credentials,
-      [e.target.name]: e.target.value,
-    });
-  };
-
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <img src={hdaLogo} alt="HDA Logo" className="h-20 w-20" />
-            </div>
-            <h1 className="text-[#5BA8A8] mb-2">HDA Interior</h1>
-            <h2 className="text-[#2D3748]">Admin Login</h2>
-            <p className="text-gray-600 mt-2">Access your dashboard</p>
-          </div>
+  <div className="relative min-h-screen w-full bg-gradient-to-br from-[#E89B7C] via-[#5BA8A8] to-[#1F2933]">
+    {/* Partikel bergerak di belakang form */}
+    <ParticleBackground />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+    {/* Wrapper form (di atas partikel) */}
+    <div className="relative z-10 min-h-screen w-full flex items-center justify-center px-6 py-12 lg:px-16">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo & Title */}
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 mb-4">
+            <img
+              src={hdaLogo}
+              alt="HDA Interior"
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <span className="text-xl font-semibold tracking-tight text-gray-900">
+              HDA Interior
+            </span>
+          </div>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+            Admin Dashboard
+          </h2>
+          <p className="mt-2 text-sm text-gray-500">
+            Masuk untuk mengelola proyek, keuangan, dan rekapitulasi.
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-gray-700 mb-2">
-                Email Address
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
               </label>
               <div className="relative">
-                <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                  <Mail size={18} />
+                </span>
                 <input
                   type="email"
-                  id="email"
-                  name="email"
-                  value={credentials.email}
-                  onChange={handleChange}
                   required
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                  placeholder="admin@hdainterior.id"
+                  value={credentials.email}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, email: e.target.value })
+                  }
+                  className="block w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm shadow-sm focus:border-[#E89B7C] focus:ring-[#E89B7C]"
+                  placeholder="admin@konstruktor.com"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
               <div className="relative">
-                <Lock size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                  <Lock size={18} />
+                </span>
                 <input
                   type="password"
-                  id="password"
-                  name="password"
-                  value={credentials.password}
-                  onChange={handleChange}
                   required
-                  className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
+                  value={credentials.password}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, password: e.target.value })
+                  }
+                  className="block w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm shadow-sm focus:border-[#E89B7C] focus:ring-[#E89B7C]"
                   placeholder="••••••••"
                 />
               </div>
             </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2">
-                <input type="checkbox" className="w-4 h-4 text-[#5BA8A8] rounded" />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-              <button type="button" className="text-sm text-[#5BA8A8] hover:underline">
-                Forgot Password?
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full px-6 py-4 bg-[#E89B7C] text-white rounded-lg hover:bg-[#D8845F] transition-colors"
-            >
-              Login
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-500">
-              Demo: Use any email and password to login
-            </p>
           </div>
-        </div>
-      </div>
 
-      {/* Right Side - Image */}
-      <div className="hidden lg:block lg:w-1/2 relative">
-        <ImageWithFallback
-          src="https://images.unsplash.com/photo-1721244654392-9c912a6eb236?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhcmNoaXRlY3R1cmUlMjBibHVlcHJpbnR8ZW58MXx8fHwxNzU5OTYwNjY1fDA&ixlib=rb-4.1.0&q=80&w=1080"
-          alt="Architecture"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/50 to-transparent" />
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex justify-center items-center gap-2 rounded-lg bg-[#E89B7C] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#D8845F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E89B7C] disabled:opacity-70"
+          >
+            {isLoading && (
+              <span className="h-4 w-4 border-2 border-white border-b-transparent rounded-full animate-spin" />
+            )}
+            <span>{isLoading ? "Memproses..." : "Masuk"}</span>
+          </button>
+        </form>
       </div>
     </div>
-  );
+  </div>
+);
+
 }
