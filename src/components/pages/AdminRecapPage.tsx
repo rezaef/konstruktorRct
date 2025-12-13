@@ -1,971 +1,399 @@
-import {
-  FileSpreadsheet,
-  Plus,
-  Send,
-  Settings,
-  Trash2,
-  DollarSign,
-  User,
-  Calendar,
-  FileText,
-  ExternalLink,
-  RefreshCw,
-  Link as LinkIcon,
-} from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { RefreshCw, Plus, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import { sheetsService } from "../../services/googleSheets";
+import {
+  addCashout,
+  clearAuthToken,
+  getAuthToken,
+  getCashout,
+  listProjects,
+  type CashoutItem,
+} from "../../services/backendApi";
 
-interface SpreadsheetConfig {
-  id: string;
-  name: string;
-  url: string;
-  spreadsheetId: string;
-  category: string;
+function fmtRp(n: number) {
+  return new Intl.NumberFormat("id-ID").format(n);
 }
 
-interface ProjectSheetMapping {
-  projectName: string;
-  sheetName: string;
-  sheetGid: string;
-  columnMapping: {
-    date: string;
-    amount: string;
-    recipient: string;
-    description: string;
-    type: string;
-  };
-  startRow: number;
-}
-
-interface RecapEntry {
-  id: string;
-  date: string;
-  spreadsheet: string;
-  project: string;
-  sheetName: string;
-  rowNumber: number;
-  amount: number;
-  type: "income" | "expense" | "payment";
-  recipient: string;
-  description: string;
+function getDefaultMonth() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
 }
 
 export function AdminRecapPage() {
-  const [spreadsheets, setSpreadsheets] = useState<SpreadsheetConfig[]>([
-    {
-      id: "1",
-      name: "HDA Interior - Main Spreadsheet",
-      url: "https://docs.google.com/spreadsheets/d/1-9jejlBp23kFnX39isQeWWJU1n9_JBzACQ6IlXQcQLg/edit?gid=7270850#gid=7270850",
-      spreadsheetId: "1-9jejlBp23kFnX39isQeWWJU1n9_JBzACQ6IlXQcQLg",
-      category: "cashflow",
-    },
-    {
-      id: "2",
-      name: "Cashflow 2025",
-      url: "https://docs.google.com/spreadsheets/d/1ABC123...",
-      spreadsheetId: "1ABC123",
-      category: "cashflow",
-    },
-  ]);
+  const [token, setToken] = useState<string | null>(null);
 
-  const [projectSheetMappings, setProjectSheetMappings] = useState<ProjectSheetMapping[]>([
-    {
-      projectName: "Modern Villa - Surabaya",
-      sheetName: "Villa Surabaya",
-      sheetGid: "7270850",
-      columnMapping: { date: "A", amount: "B", recipient: "C", description: "D", type: "E" },
-      startRow: 2,
-    },
-    {
-      projectName: "Office Renovation - Jakarta",
-      sheetName: "Office Jakarta",
-      sheetGid: "0",
-      columnMapping: { date: "A", amount: "B", recipient: "C", description: "D", type: "E" },
-      startRow: 2,
-    },
-    {
-      projectName: "Luxury Apartment - Bali",
-      sheetName: "Apartment Bali",
-      sheetGid: "1",
-      columnMapping: { date: "A", amount: "B", recipient: "C", description: "D", type: "E" },
-      startRow: 2,
-    },
-    {
-      projectName: "Restaurant Interior - Bandung",
-      sheetName: "Restaurant Bandung",
-      sheetGid: "2",
-      columnMapping: { date: "A", amount: "B", recipient: "C", description: "D", type: "E" },
-      startRow: 2,
-    },
-    {
-      projectName: "Hotel Lobby - Yogyakarta",
-      sheetName: "Hotel Yogyakarta",
-      sheetGid: "3",
-      columnMapping: { date: "A", amount: "B", recipient: "C", description: "D", type: "E" },
-      startRow: 2,
-    },
-  ]);
+  const [projects, setProjects] = useState<string[]>([]);
+  const [projectSheet, setProjectSheet] = useState("");
+  const [month, setMonth] = useState(getDefaultMonth());
 
-  const [availableSheets, setAvailableSheets] = useState<string[]>([]);
-  const [isLoadingSheets, setIsLoadingSheets] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
 
-  const [recentEntries, setRecentEntries] = useState<RecapEntry[]>([
-    {
-      id: "1",
-      date: "2025-10-12",
-      spreadsheet: "HDA Interior - Main Spreadsheet",
-      project: "Modern Villa - Surabaya",
-      sheetName: "Villa Surabaya",
-      rowNumber: 5,
-      amount: 50_000_000,
-      type: "income",
-      recipient: "PT. Indo Makmur",
-      description: "Pembayaran DP 50%",
-    },
-    {
-      id: "2",
-      date: "2025-10-11",
-      spreadsheet: "HDA Interior - Main Spreadsheet",
-      project: "Office Renovation - Jakarta",
-      sheetName: "Office Jakarta",
-      rowNumber: 8,
-      amount: 15_000_000,
-      type: "expense",
-      recipient: "Toko Bangunan Jaya",
-      description: "Pembelian material lantai",
-    },
-  ]);
+  const [items, setItems] = useState<CashoutItem[]>([]);
+  const [total, setTotal] = useState(0);
 
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [showMappingModal, setShowMappingModal] = useState(false);
-
-  const [formData, setFormData] = useState({
-    spreadsheetId: "",
-    project: "",
+  const [form, setForm] = useState({
+    date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+    pengeluaran: "",
+    metode: "transfer",
     amount: "",
-    type: "income" as "income" | "expense" | "payment",
-    recipient: "",
-    description: "",
-    date: new Date().toISOString().split("T")[0],
   });
+  const [submitting, setSubmitting] = useState(false);
 
-  const [newSpreadsheet, setNewSpreadsheet] = useState({ name: "", url: "", category: "cashflow" });
+  const [q, setQ] = useState("");
 
-  const [newMapping, setNewMapping] = useState<ProjectSheetMapping>({
-    projectName: "",
-    sheetName: "",
-    sheetGid: "0",
-    columnMapping: { date: "A", amount: "B", recipient: "C", description: "D", type: "E" },
-    startRow: 2,
-  });
-
-  // ====== Helper untuk memuat daftar sheet dari sebuah spreadsheet ======
-  const loadSheetsFromSpreadsheet = async (spreadsheetId: string) => {
-    if (!spreadsheetId) return;
-    setIsLoadingSheets(true);
-    try {
-      const sheets = await sheetsService.getSheetNames(spreadsheetId);
-      setAvailableSheets(sheets);
-      toast.success(`Berhasil memuat ${sheets.length} sheet dari spreadsheet`);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Gagal memuat sheet";
-      toast.error(msg);
-      console.error(error);
-    } finally {
-      setIsLoadingSheets(false);
+  // Ambil token dari localStorage
+  useEffect(() => {
+    const t = getAuthToken();
+    setToken(t);
+    if (!t) {
+      toast.error("Silakan login dulu.");
+      // paksa balik ke /dashboard (karena login kamu via /dashboard)
+      window.location.pathname = "/dashboard";
     }
-  };
+  }, []);
 
-  // ====== Submit form simpan data ======
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Load list project (nama-nama sheet)
+  useEffect(() => {
+    if (!token) return;
 
-    if (!formData.spreadsheetId || !formData.project || !formData.amount) {
-      toast.error("Mohon lengkapi semua field yang diperlukan");
-      return;
-    }
+    const run = async () => {
+      setLoadingProjects(true);
+      try {
+        const res = await listProjects(token);
+        const list = res.projects || [];
+        setProjects(list);
 
-    const mapping = projectSheetMappings.find((m) => m.projectName === formData.project);
-    if (!mapping) {
-      toast.error("Project belum memiliki mapping sheet. Silakan konfigurasi terlebih dahulu.");
-      return;
-    }
-
-    const selectedSheet = spreadsheets.find((s) => s.id === formData.spreadsheetId);
-    if (!selectedSheet) {
-      toast.error("Spreadsheet tidak ditemukan");
-      return;
-    }
-
-    try {
-      const nextRow = await sheetsService.findNextEmptyRow(
-        selectedSheet.spreadsheetId,
-        mapping.sheetName,
-        mapping.columnMapping.date,
-        mapping.startRow
-      );
-
-      const rowData = sheetsService.formatDataForSheet(
-        formData.date,
-        parseFloat(formData.amount),
-        formData.recipient,
-        formData.description,
-        formData.type,
-        mapping.columnMapping
-      );
-
-      const success = await sheetsService.insertDataSorted(
-        selectedSheet.spreadsheetId,
-        mapping.sheetName,
-        new Date(formData.date),
-        rowData,
-        mapping.columnMapping,
-        "mock-token" // TODO: ganti dengan token OAuth asli
-      );
-
-      if (success) {
-        const newEntry: RecapEntry = {
-          id: Date.now().toString(),
-          date: formData.date,
-          spreadsheet: selectedSheet.name,
-          project: formData.project,
-          sheetName: mapping.sheetName,
-          rowNumber: nextRow,
-          amount: parseFloat(formData.amount),
-          type: formData.type,
-          recipient: formData.recipient,
-          description: formData.description,
-        };
-
-        setRecentEntries((prev) => [newEntry, ...prev]);
-        toast.success(`✅ Data berhasil disimpan ke sheet "${mapping.sheetName}" baris ${nextRow}!`);
-
-        setFormData({
-          spreadsheetId: "",
-          project: "",
-          amount: "",
-          type: "income",
-          recipient: "",
-          description: "",
-          date: new Date().toISOString().split("T")[0],
-        });
-      } else {
-        toast.error("Gagal menyimpan data ke spreadsheet");
+        // auto pilih pertama kalau belum ada
+        if (!projectSheet && list.length > 0) setProjectSheet(list[0]);
+      } catch (e: any) {
+        if (e?.status === 401) {
+          clearAuthToken();
+          toast.error("Sesi login habis. Silakan login ulang.");
+          window.location.pathname = "/dashboard";
+          return;
+        }
+        toast.error(e?.message || "Gagal mengambil daftar project.");
+      } finally {
+        setLoadingProjects(false);
       }
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Terjadi kesalahan saat menyimpan data";
-      toast.error(msg);
-      console.error(error);
-    }
-  };
-
-  // ====== CRUD konfigurasi ======
-  const handleAddSpreadsheet = () => {
-    if (!newSpreadsheet.name || !newSpreadsheet.url) {
-      toast.error("Mohon lengkapi nama dan URL spreadsheet");
-      return;
-    }
-
-    const spreadsheetId = sheetsService.extractSpreadsheetId(newSpreadsheet.url);
-    if (!spreadsheetId) {
-      toast.error("URL spreadsheet tidak valid");
-      return;
-    }
-
-    const newSheet: SpreadsheetConfig = {
-      id: Date.now().toString(),
-      name: newSpreadsheet.name,
-      url: newSpreadsheet.url,
-      spreadsheetId,
-      category: newSpreadsheet.category,
     };
 
-    setSpreadsheets((prev) => [...prev, newSheet]);
-    setNewSpreadsheet({ name: "", url: "", category: "cashflow" });
-    setShowConfigModal(false);
-    toast.success("Spreadsheet berhasil ditambahkan!");
-  };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  const handleAddMapping = () => {
-    if (!newMapping.projectName || !newMapping.sheetName) {
-      toast.error("Mohon lengkapi nama project dan sheet");
-      return;
-    }
+  // Load data cashout tiap ganti project / month
+  const loadCashout = async () => {
+    if (!token || !projectSheet || !month) return;
 
-    setProjectSheetMappings((prev) => [...prev, { ...newMapping }]);
-    setNewMapping({
-      projectName: "",
-      sheetName: "",
-      sheetGid: "0",
-      columnMapping: { date: "A", amount: "B", recipient: "C", description: "D", type: "E" },
-      startRow: 2,
-    });
-    setShowMappingModal(false);
-    toast.success("Mapping project berhasil ditambahkan!");
-  };
-
-  const handleDeleteSpreadsheet = (id: string) => {
-    if (confirm("Apakah Anda yakin ingin menghapus konfigurasi spreadsheet ini?")) {
-      setSpreadsheets((prev) => prev.filter((s) => s.id !== id));
-      toast.success("Spreadsheet berhasil dihapus");
+    setLoadingData(true);
+    try {
+      const res = await getCashout(token, projectSheet, month);
+      setItems(res.items || []);
+      setTotal(res.total || 0);
+    } catch (e: any) {
+      if (e?.status === 401) {
+        clearAuthToken();
+        toast.error("Sesi login habis. Silakan login ulang.");
+        window.location.pathname = "/dashboard";
+        return;
+      }
+      toast.error(e?.message || "Gagal memuat data cashout.");
+    } finally {
+      setLoadingData(false);
     }
   };
 
-  const handleDeleteMapping = (projectName: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus mapping untuk "${projectName}"?`)) {
-      setProjectSheetMappings((prev) => prev.filter((m) => m.projectName !== projectName));
-      toast.success("Mapping berhasil dihapus");
+  useEffect(() => {
+    loadCashout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, projectSheet, month]);
+
+  const filteredItems = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return items;
+    return items.filter((x) =>
+      `${x.date} ${x.pengeluaran} ${x.metode}`.toLowerCase().includes(term)
+    );
+  }, [items, q]);
+
+  const filteredTotal = useMemo(() => {
+    return filteredItems.reduce((s, x) => s + (x.amount || 0), 0);
+  }, [filteredItems]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    if (!projectSheet) return toast.error("Pilih project dulu.");
+    if (!month) return toast.error("Pilih bulan dulu.");
+    if (!form.date) return toast.error("Tanggal wajib.");
+    if (!form.pengeluaran.trim()) return toast.error("Pengeluaran wajib.");
+    if (!form.amount.trim()) return toast.error("Nominal wajib.");
+
+    setSubmitting(true);
+    try {
+      await addCashout(token, {
+        projectSheet,
+        date: form.date,
+        pengeluaran: form.pengeluaran.trim(),
+        metode: form.metode,
+        amount: form.amount.trim(),
+      });
+
+      toast.success("Berhasil menambahkan cashout.");
+      setForm((p) => ({ ...p, pengeluaran: "", amount: "" }));
+
+      // refresh data
+      await loadCashout();
+    } catch (e: any) {
+      if (e?.status === 401) {
+        clearAuthToken();
+        toast.error("Sesi login habis. Silakan login ulang.");
+        window.location.pathname = "/dashboard";
+        return;
+      }
+      toast.error(e?.message || "Gagal menambahkan cashout.");
+    } finally {
+      setSubmitting(false);
     }
-  };
-
-  // ====== util kecil UI ======
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case "income":
-        return "bg-green-100 text-green-700";
-      case "expense":
-        return "bg-red-100 text-red-700";
-      case "payment":
-        return "bg-blue-100 text-blue-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case "income":
-        return "Pemasukan";
-      case "expense":
-        return "Pengeluaran";
-      case "payment":
-        return "Pelunasan";
-      default:
-        return type;
-    }
-  };
-
-  const getMappedProjects = () => projectSheetMappings.map((m) => m.projectName);
-  const getSheetInfo = (projectName: string) => {
-    const mapping = projectSheetMappings.find((m) => m.projectName === projectName);
-    return mapping ? `Sheet: ${mapping.sheetName}` : "";
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-[#2D3748] mb-2">Rekapitulasi Keuangan</h2>
-          <p className="text-gray-600">Input dan kelola data keuangan terintegrasi dengan Google Spreadsheet</p>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            Rekapitulasi Pengeluaran (Cashout)
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Tambah & lihat pengeluaran per project (berdasarkan tab sheet) dan per bulan.
+          </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowMappingModal(true)}
-            className="px-6 py-3 bg-white border-2 border-[#E89B7C] text-[#E89B7C] rounded-lg hover:bg-[#E89B7C] hover:text-white transition-colors flex items-center gap-2"
+
+        <button
+          onClick={loadCashout}
+          disabled={loadingData || !projectSheet}
+          className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60"
+        >
+          <RefreshCw className={loadingData ? "animate-spin" : ""} size={16} />
+          Refresh
+        </button>
+      </div>
+
+      {/* Controls */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 p-4">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 flex items-center gap-2">
+            <FileSpreadsheet size={16} /> Project (Sheet)
+          </div>
+
+          <select
+            value={projectSheet}
+            onChange={(e) => setProjectSheet(e.target.value)}
+            disabled={loadingProjects}
+            className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
           >
-            <LinkIcon size={20} />
-            Mapping Project
-          </button>
-          <button
-            onClick={() => setShowConfigModal(true)}
-            className="px-6 py-3 bg-white border-2 border-[#5BA8A8] text-[#5BA8A8] rounded-lg hover:bg-[#5BA8A8] hover:text-white transition-colors flex items-center gap-2"
-          >
-            <Settings size={20} />
-            Kelola Spreadsheet
-          </button>
-        </div>
-      </div>
-
-      {/* Google Sheets Integration Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
-        <div className="flex items-start gap-3">
-          <FileSpreadsheet size={24} className="text-blue-600 mt-1" />
-          <div className="flex-1">
-            <h4 className="text-blue-900 mb-1">Sinkronisasi Otomatis dengan Google Spreadsheet</h4>
-            <p className="text-sm text-blue-700 mb-2">
-              Sistem akan otomatis mendeteksi sheet berdasarkan project yang dipilih dan menempatkan data di baris kosong berikutnya. Data akan diurutkan berdasarkan tanggal.
-            </p>
-            <div className="flex gap-4 text-sm text-blue-600">
-              <span>✓ Auto-detect baris kosong</span>
-              <span>✓ Mapping project ke sheet</span>
-              <span>✓ Format sesuai struktur sheet</span>
-              <span>✓ Sorted by date</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Form Input */}
-        <div className="lg:col-span-2">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-[#2D3748] mb-6">Form Input Rekapitulasi</h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Tanggal */}
-              <div>
-                <label className="flex items-center gap-2 text-gray-700 mb-2">
-                  <Calendar size={18} className="text-[#5BA8A8]" />
-                  Tanggal *
-                </label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  required
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                />
-              </div>
-
-              {/* Pilih Spreadsheet */}
-              <div>
-                <label className="flex items-center gap-2 text-gray-700 mb-2">
-                  <FileSpreadsheet size={18} className="text-[#5BA8A8]" />
-                  Pilih Spreadsheet *
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    value={formData.spreadsheetId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, spreadsheetId: e.target.value });
-                      const selected = spreadsheets.find(s => s.id === e.target.value);
-                      if (selected) {
-                        loadSheetsFromSpreadsheet(selected.spreadsheetId);
-                      }
-                    }}
-                    required
-                    className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                  >
-                    <option value="">-- Pilih Spreadsheet --</option>
-                    {spreadsheets.map((sheet) => (
-                      <option key={sheet.id} value={sheet.id}>
-                        {sheet.name} ({sheet.category})
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const selected = spreadsheets.find(s => s.id === formData.spreadsheetId);
-                      if (selected) {
-                        loadSheetsFromSpreadsheet(selected.spreadsheetId);
-                      } else {
-                        toast.error('Pilih spreadsheet terlebih dahulu');
-                      }
-                    }}
-                    disabled={isLoadingSheets}
-                    className="px-4 py-3 bg-[#5BA8A8] text-white rounded-lg hover:bg-[#4A9090] transition-colors disabled:opacity-50"
-                  >
-                    {isLoadingSheets ? (
-                      <RefreshCw size={20} className="animate-spin" />
-                    ) : (
-                      <RefreshCw size={20} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Pilih Proyek */}
-              <div>
-                <label className="flex items-center gap-2 text-gray-700 mb-2">
-                  <FileText size={18} className="text-[#5BA8A8]" />
-                  Nama Proyek *
-                </label>
-                <select
-                  value={formData.project}
-                  onChange={(e) => setFormData({ ...formData, project: e.target.value })}
-                  required
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                >
-                  <option value="">-- Pilih Proyek --</option>
-                  {getMappedProjects().map((project) => (
-                    <option key={project} value={project}>
-                      {project}
-                    </option>
-                  ))}
-                </select>
-                {formData.project && (
-                  <p className="mt-2 text-sm text-[#5BA8A8]">
-                    📋 {getSheetInfo(formData.project)}
-                  </p>
-                )}
-              </div>
-
-              {/* Tipe Transaksi */}
-              <div>
-                <label className="block text-gray-700 mb-2">
-                  Tipe Transaksi *
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type: 'income' })}
-                    className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-                      formData.type === 'income'
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-gray-300 hover:border-green-300'
-                    }`}
-                  >
-                    Pemasukan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type: 'expense' })}
-                    className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-                      formData.type === 'expense'
-                        ? 'border-red-500 bg-red-50 text-red-700'
-                        : 'border-gray-300 hover:border-red-300'
-                    }`}
-                  >
-                    Pengeluaran
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, type: 'payment' })}
-                    className={`px-4 py-3 rounded-lg border-2 transition-colors ${
-                      formData.type === 'payment'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-300 hover:border-blue-300'
-                    }`}
-                  >
-                    Pelunasan
-                  </button>
-                </div>
-              </div>
-
-              {/* Jumlah */}
-              <div>
-                <label className="flex items-center gap-2 text-gray-700 mb-2">
-                  <DollarSign size={18} className="text-[#5BA8A8]" />
-                  Jumlah (Rp) *
-                </label>
-                <input
-                  type="number"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  required
-                  min="0"
-                  step="1000"
-                  placeholder="5000000"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                />
-              </div>
-
-              {/* Pengirim/Penerima */}
-              <div>
-                <label className="flex items-center gap-2 text-gray-700 mb-2">
-                  <User size={18} className="text-[#5BA8A8]" />
-                  Pengirim / Penerima *
-                </label>
-                <input
-                  type="text"
-                  value={formData.recipient}
-                  onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
-                  required
-                  placeholder="Nama perusahaan atau individu"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                />
-              </div>
-
-              {/* Keterangan */}
-              <div>
-                <label className="block text-gray-700 mb-2">
-                  Keterangan
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  rows={4}
-                  placeholder="Deskripsi detail transaksi..."
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8] resize-none"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full px-6 py-4 bg-[#E89B7C] text-white rounded-lg hover:bg-[#D8845F] transition-colors flex items-center justify-center gap-2"
-              >
-                <Send size={20} />
-                Simpan ke Spreadsheet
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Sidebar Info */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Configured Spreadsheets */}
-          <div className="bg-white p-6 rounded-lg shadow-md sticky top-8">
-            <h3 className="text-[#2D3748] mb-4">Spreadsheet Terkonfigurasi</h3>
-            
-            {spreadsheets.length === 0 ? (
-              <div className="text-center py-8">
-                <FileSpreadsheet size={48} className="text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Belum ada spreadsheet</p>
-              </div>
+            {projects.length === 0 ? (
+              <option value="">
+                {loadingProjects ? "Memuat project..." : "Tidak ada project"}
+              </option>
             ) : (
-              <div className="space-y-3">
-                {spreadsheets.map((sheet) => (
-                  <div key={sheet.id} className="border border-gray-200 rounded-lg p-3 hover:border-[#5BA8A8] transition-colors">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="text-sm text-[#2D3748] mb-1">{sheet.name}</p>
-                        <span className="inline-block px-2 py-1 bg-[#5BA8A8]/10 text-[#5BA8A8] text-xs rounded">
-                          {sheet.category}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteSpreadsheet(sheet.id)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                    <a
-                      href={sheet.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline flex items-center gap-1 truncate"
-                    >
-                      <ExternalLink size={12} />
-                      Buka Spreadsheet
-                    </a>
-                  </div>
-                ))}
-              </div>
+              projects.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))
             )}
+          </select>
+
+          <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            Total project: {projects.length}
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 p-4">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            Bulan
           </div>
 
-          {/* Project Mappings */}
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-[#2D3748] mb-4">Mapping Project → Sheet</h3>
-            
-            {projectSheetMappings.length === 0 ? (
-              <div className="text-center py-8">
-                <LinkIcon size={48} className="text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 text-sm">Belum ada mapping</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {projectSheetMappings.map((mapping) => (
-                  <div key={mapping.projectName} className="border border-gray-200 rounded-lg p-3 hover:border-[#E89B7C] transition-colors">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="text-sm text-[#2D3748] mb-1">{mapping.projectName}</p>
-                        <p className="text-xs text-gray-500">→ {mapping.sheetName}</p>
-                        <div className="flex gap-2 mt-2">
-                          <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                            Row {mapping.startRow}+
-                          </span>
-                          <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
-                            GID: {mapping.sheetGid}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteMapping(mapping.projectName)}
-                        className="text-red-500 hover:text-red-700 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <input
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+          />
+
+          <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            Transaksi: {items.length} • Total: Rp {fmtRp(total)}
+          </div>
+        </div>
+
+        <div className="rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 p-4">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+            Cari
+          </div>
+
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari tanggal / pengeluaran / metode..."
+            className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+          />
+
+          <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            Hasil: {filteredItems.length} • Total filter: Rp {fmtRp(filteredTotal)}
           </div>
         </div>
       </div>
 
-      {/* Recent Entries */}
-      <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-        <h3 className="text-[#2D3748] mb-6">Entri Terakhir</h3>
-        
-        {recentEntries.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText size={48} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">Belum ada data rekapitulasi</p>
+      {/* Form tambah cashout */}
+      <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            Tambah Pengeluaran
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-gray-600">Tanggal</th>
-                  <th className="text-left py-3 px-4 text-gray-600">Proyek</th>
-                  <th className="text-left py-3 px-4 text-gray-600">Sheet</th>
-                  <th className="text-left py-3 px-4 text-gray-600">Baris</th>
-                  <th className="text-left py-3 px-4 text-gray-600">Tipe</th>
-                  <th className="text-right py-3 px-4 text-gray-600">Jumlah</th>
-                  <th className="text-left py-3 px-4 text-gray-600">Penerima/Pengirim</th>
+        </div>
+
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-3">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+              Tanggal
+            </label>
+            <input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+              className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="md:col-span-5">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+              Pengeluaran (keterangan)
+            </label>
+            <input
+              value={form.pengeluaran}
+              onChange={(e) => setForm((p) => ({ ...p, pengeluaran: e.target.value }))}
+              placeholder="Contoh: Material / Paving / Upah..."
+              className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+              Metode
+            </label>
+            <select
+              value={form.metode}
+              onChange={(e) => setForm((p) => ({ ...p, metode: e.target.value }))}
+              className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+            >
+              <option value="cash">Cash</option>
+              <option value="debit">Debit</option>
+              <option value="transfer">Transfer</option>
+              <option value="kartu kredit">Kartu Kredit</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+              Nominal (Rp)
+            </label>
+            <input
+              value={form.amount}
+              onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))}
+              placeholder="Contoh: 1.250.000"
+              className="w-full rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-950 px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="md:col-span-12 flex justify-end">
+            <button
+              type="submit"
+              disabled={submitting || !projectSheet}
+              className="inline-flex items-center gap-2 rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-semibold hover:bg-gray-800 disabled:opacity-60"
+            >
+              <Plus size={16} />
+              {submitting ? "Menyimpan..." : "Tambah"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+          <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            Daftar Pengeluaran
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {loadingData ? "Memuat..." : `${filteredItems.length} item`}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-950/60">
+              <tr className="text-left text-gray-600 dark:text-gray-300">
+                <th className="px-5 py-3 font-medium">Tanggal</th>
+                <th className="px-5 py-3 font-medium">Pengeluaran</th>
+                <th className="px-5 py-3 font-medium">Metode</th>
+                <th className="px-5 py-3 font-medium text-right">Nominal</th>
+                <th className="px-5 py-3 font-medium text-right">Row Sheet</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-200 dark:divide-white/10">
+              {filteredItems.length === 0 ? (
+                <tr>
+                  <td className="px-5 py-4 text-gray-500 dark:text-gray-400" colSpan={5}>
+                    {loadingData ? "Memuat data..." : "Belum ada data untuk filter/bulan ini."}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {recentEntries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-4 text-sm text-gray-600">
-                      {new Date(entry.date).toLocaleDateString('id-ID')}
+              ) : (
+                filteredItems.map((x) => (
+                  <tr key={`${x.sheetRow}-${x.date}-${x.amount}`}>
+                    <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      {x.date}
                     </td>
-                    <td className="py-4 px-4 text-sm text-gray-700">{entry.project}</td>
-                    <td className="py-4 px-4 text-sm text-gray-600">{entry.sheetName}</td>
-                    <td className="py-4 px-4 text-sm text-gray-600">Row {entry.rowNumber}</td>
-                    <td className="py-4 px-4">
-                      <span className={`inline-block px-2 py-1 rounded text-xs ${getTypeColor(entry.type)}`}>
-                        {getTypeLabel(entry.type)}
-                      </span>
+                    <td className="px-5 py-3 text-gray-800 dark:text-gray-100">
+                      {x.pengeluaran || "-"}
                     </td>
-                    <td className="py-4 px-4 text-sm text-right">
-                      <span className={entry.type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                        {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
-                      </span>
+                    <td className="px-5 py-3 text-gray-700 dark:text-gray-200">
+                      {x.metode || "-"}
                     </td>
-                    <td className="py-4 px-4 text-sm text-gray-700">{entry.recipient}</td>
+                    <td className="px-5 py-3 text-right font-medium text-gray-900 dark:text-gray-100">
+                      Rp {fmtRp(x.amount || 0)}
+                    </td>
+                    <td className="px-5 py-3 text-right text-gray-500 dark:text-gray-400">
+                      {x.sheetRow}
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+
+            {filteredItems.length > 0 && (
+              <tfoot className="bg-gray-50 dark:bg-gray-950/60">
+                <tr>
+                  <td className="px-5 py-3 font-semibold" colSpan={3}>
+                    Total
+                  </td>
+                  <td className="px-5 py-3 text-right font-bold">
+                    Rp {fmtRp(filteredTotal)}
+                  </td>
+                  <td className="px-5 py-3" />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
       </div>
-
-      {/* Spreadsheet Config Modal */}
-      {showConfigModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-[#2D3748] mb-6">Tambah Spreadsheet Baru</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-700 mb-2">Nama Spreadsheet *</label>
-                <input
-                  type="text"
-                  value={newSpreadsheet.name}
-                  onChange={(e) => setNewSpreadsheet({ ...newSpreadsheet, name: e.target.value })}
-                  placeholder="HDA Interior - Main"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-2">URL Spreadsheet *</label>
-                <input
-                  type="url"
-                  value={newSpreadsheet.url}
-                  onChange={(e) => setNewSpreadsheet({ ...newSpreadsheet, url: e.target.value })}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-2">Kategori</label>
-                <select
-                  value={newSpreadsheet.category}
-                  onChange={(e) => setNewSpreadsheet({ ...newSpreadsheet, category: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                >
-                  <option value="cashflow">Cashflow</option>
-                  <option value="expenses">Expenses</option>
-                  <option value="payments">Payments</option>
-                  <option value="other">Lainnya</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowConfigModal(false)}
-                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleAddSpreadsheet}
-                className="flex-1 px-6 py-3 bg-[#5BA8A8] text-white rounded-lg hover:bg-[#4A9090] transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                Tambah
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Project Mapping Modal */}
-      {showMappingModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-[#2D3748] mb-6">Tambah Mapping Project ke Sheet</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-700 mb-2">Nama Project *</label>
-                <input
-                  type="text"
-                  value={newMapping.projectName}
-                  onChange={(e) => setNewMapping({ ...newMapping, projectName: e.target.value })}
-                  placeholder="Modern Villa - Surabaya"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 mb-2">Nama Sheet *</label>
-                  {availableSheets.length > 0 ? (
-                    <select
-                      value={newMapping.sheetName}
-                      onChange={(e) => setNewMapping({ ...newMapping, sheetName: e.target.value })}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                    >
-                      <option value="">-- Pilih Sheet --</option>
-                      {availableSheets.map((sheet) => (
-                        <option key={sheet} value={sheet}>
-                          {sheet}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={newMapping.sheetName}
-                      onChange={(e) => setNewMapping({ ...newMapping, sheetName: e.target.value })}
-                      placeholder="Villa Surabaya"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                    />
-                  )}
-                  <p className="text-xs text-gray-500 mt-1">
-                    {availableSheets.length > 0 ? 'Sheet dimuat dari spreadsheet' : 'Pilih spreadsheet dan klik refresh untuk memuat sheet'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 mb-2">Sheet GID</label>
-                  <input
-                    type="text"
-                    value={newMapping.sheetGid}
-                    onChange={(e) => setNewMapping({ ...newMapping, sheetGid: e.target.value })}
-                    placeholder="0"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">ID dari URL sheet (#gid=...)</p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-700 mb-2">Baris Mulai Data</label>
-                <input
-                  type="number"
-                  value={newMapping.startRow}
-                  onChange={(e) => setNewMapping({ ...newMapping, startRow: parseInt(e.target.value) })}
-                  min="1"
-                  placeholder="2"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
-                />
-                <p className="text-xs text-gray-500 mt-1">Baris pertama setelah header (biasanya 2)</p>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="text-gray-700 mb-3">Mapping Kolom</h4>
-                <div className="grid grid-cols-5 gap-3">
-                  <div>
-                    <label className="block text-gray-600 text-sm mb-1">Tanggal</label>
-                    <input
-                      type="text"
-                      value={newMapping.columnMapping.date}
-                      onChange={(e) => setNewMapping({ 
-                        ...newMapping, 
-                        columnMapping: { ...newMapping.columnMapping, date: e.target.value.toUpperCase() }
-                      })}
-                      placeholder="A"
-                      maxLength={2}
-                      className="w-full px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-[#5BA8A8] text-center uppercase"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 text-sm mb-1">Jumlah</label>
-                    <input
-                      type="text"
-                      value={newMapping.columnMapping.amount}
-                      onChange={(e) => setNewMapping({ 
-                        ...newMapping, 
-                        columnMapping: { ...newMapping.columnMapping, amount: e.target.value.toUpperCase() }
-                      })}
-                      placeholder="B"
-                      maxLength={2}
-                      className="w-full px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-[#5BA8A8] text-center uppercase"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 text-sm mb-1">Penerima</label>
-                    <input
-                      type="text"
-                      value={newMapping.columnMapping.recipient}
-                      onChange={(e) => setNewMapping({ 
-                        ...newMapping, 
-                        columnMapping: { ...newMapping.columnMapping, recipient: e.target.value.toUpperCase() }
-                      })}
-                      placeholder="C"
-                      maxLength={2}
-                      className="w-full px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-[#5BA8A8] text-center uppercase"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 text-sm mb-1">Keterangan</label>
-                    <input
-                      type="text"
-                      value={newMapping.columnMapping.description}
-                      onChange={(e) => setNewMapping({ 
-                        ...newMapping, 
-                        columnMapping: { ...newMapping.columnMapping, description: e.target.value.toUpperCase() }
-                      })}
-                      placeholder="D"
-                      maxLength={2}
-                      className="w-full px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-[#5BA8A8] text-center uppercase"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-600 text-sm mb-1">Tipe</label>
-                    <input
-                      type="text"
-                      value={newMapping.columnMapping.type}
-                      onChange={(e) => setNewMapping({ 
-                        ...newMapping, 
-                        columnMapping: { ...newMapping.columnMapping, type: e.target.value.toUpperCase() }
-                      })}
-                      placeholder="E"
-                      maxLength={2}
-                      className="w-full px-3 py-2 rounded border border-gray-300 focus:outline-none focus:border-[#5BA8A8] text-center uppercase"
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Masukkan huruf kolom sesuai struktur di spreadsheet (A, B, C, dst)</p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowMappingModal(false)}
-                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleAddMapping}
-                className="flex-1 px-6 py-3 bg-[#E89B7C] text-white rounded-lg hover:bg-[#D8845F] transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                Tambah Mapping
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
