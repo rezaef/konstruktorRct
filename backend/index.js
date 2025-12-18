@@ -8,6 +8,7 @@ const path = require("path");
 const { google } = require("googleapis");
 const jwt = require("jsonwebtoken");
 
+
 dotenv.config();
 
 const app = express();
@@ -485,7 +486,8 @@ app.get("/projects", authenticate, async (req, res) => {
 
     const projects = (meta.data.sheets || [])
       .map(s => s.properties?.title)
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(t => t !== META_SHEET); // ✅ sembunyikan tab non project
 
     res.json({ success: true, projects });
   } catch (e) {
@@ -732,7 +734,8 @@ app.get("/dashboard/overview", authenticate, async (req, res) => {
 
     const projects = (meta.data.sheets || [])
       .map(s => s.properties?.title)
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(t => t !== META_SHEET); // ✅ sembunyikan tab non project
 
     const scope = (project && project !== "all") ? project : "all";
     const selectedProjects = scope === "all"
