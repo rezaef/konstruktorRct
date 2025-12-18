@@ -108,3 +108,12 @@ export async function addCashout(
 ) {
   return apiPost<CashoutCreateResponse>(`/cashout`, payload, token);
 }
+
+export async function getDashboardOverview(project: string = "all") {
+  const token = localStorage.getItem("token"); // sesuaikan key token kamu
+  const res = await fetch(`http://localhost:4000/dashboard/overview?project=${encodeURIComponent(project)}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!res.ok) throw new Error("Failed to load dashboard overview");
+  return res.json();
+}

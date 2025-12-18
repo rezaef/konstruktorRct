@@ -160,6 +160,45 @@ function normalizeSheetDate(v) {
   return s;
 }
 
+function monthKeyFromISO(isoDate) {
+  // isoDate: YYYY-MM-DD
+  if (!isoDate || isoDate.length < 7) return "";
+  return isoDate.slice(0, 7); // YYYY-MM
+}
+
+function last12MonthKeys(now = new Date()) {
+  const keys = [];
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(start.getFullYear(), start.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    keys.push(`${y}-${m}`);
+  }
+  return keys;
+}
+
+function monthLabelFromKey(key) {
+  // key: YYYY-MM
+  const [y, m] = key.split("-");
+  const d = new Date(Number(y), Number(m) - 1, 1);
+  return d.toLocaleString("en-US", { month: "short" }); // Jan, Feb...
+}
+
+function movingAverage(arr, window = 3) {
+  const out = [];
+  for (let i = 0; i < arr.length; i++) {
+    const start = Math.max(0, i - window + 1);
+    const slice = arr.slice(start, i + 1);
+    out.push(slice.reduce((a, b) => a + b, 0) / slice.length);
+  }
+  return out;
+}
+
+function pctChange(curr, prev) {
+  if (!prev || prev === 0) return null;
+  return ((curr - prev) / prev) * 100;
+}
 
 async function findMonthBlocks(sheetTitle) {
   const sh = a1Sheet(sheetTitle);
@@ -250,6 +289,32 @@ function a1Sheet(title) {
   const safe = String(title).replace(/'/g, "''");
   return `'${safe}'`;
 }
+
+// ===== Projects metadata sheet =====
+const META_SHEET = "_PROJECTS";
+
+async function ensureProjectsMetaSheet() {
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId: SPREADSHEET_ID,
+    fields: "sheets(properties(title))",
+  });
+
+  const titles = (meta.data.sheets || []).map(s => s.properties?.title).filter(Boolean);
+  if (titles.includes(META_SHEET)) return;
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: { requests: [{ addSheet: { properties: { title: META_SHEET } } }] },
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${META_SHEET}!A1:E1`,
+    valueInputOption: "RAW",
+    resource: { values: [["project","client","status","startDate","progress"]] },
+  });
+}
+
 
 async function getLastUsedRow(sheetTitle) {
   const sh = a1Sheet(sheetTitle);
@@ -648,6 +713,332 @@ app.get("/cashout/summary", authenticate, async (req, res) => {
       success: false,
       message: e?.response?.data?.error?.message || e.message || "Gagal ambil summary cashout.",
     });
+  }
+});
+
+// ===== Dashboard Cache (hindari quota sheets) =====
+const dashboardCache = new Map(); // key -> { ts, data }
+const DASH_TTL_MS = 60 * 1000;    // 60 detik
+
+app.get("/dashboard/overview", authenticate, async (req, res) => {
+  try {
+    const project = String(req.query.project || "all").trim();
+
+    // ambil semua tab
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+      fields: "sheets(properties(title))",
+    });
+
+    const projects = (meta.data.sheets || [])
+      .map(s => s.properties?.title)
+      .filter(Boolean);
+
+    const scope = (project && project !== "all") ? project : "all";
+    const selectedProjects = scope === "all"
+      ? projects
+      : projects.filter(p => p === scope);
+
+    if (selectedProjects.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Project tab tidak ditemukan.",
+        projects,
+      });
+    }
+
+    // ===== CACHE HIT =====
+    const cacheKey = `dashboard:${scope}`;
+    const cached = dashboardCache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts) < DASH_TTL_MS) {
+      return res.json(cached.data);
+    }
+
+    // ===== BATCH GET (1 request untuk banyak tab) =====
+    const ranges = selectedProjects.map(t => `${a1Sheet(t)}!A:K`);
+    const batch = await sheets.spreadsheets.values.batchGet({
+      spreadsheetId: SPREADSHEET_ID,
+      ranges,
+      valueRenderOption: "UNFORMATTED_VALUE",
+    });
+
+    const rows = [];
+    const valueRanges = batch.data.valueRanges || [];
+
+    valueRanges.forEach((vr, idx) => {
+      const sheetTitle = selectedProjects[idx];
+      const values = vr.values || [];
+
+      for (const r of values) {
+        const dateISO = normalizeSheetDate(r?.[0]); // kolom A
+        const amount = parseAmount(r?.[10]);        // kolom K
+        if (!dateISO || !amount || amount <= 0) continue;
+
+        rows.push({
+          project: sheetTitle,
+          date: dateISO,
+          month: dateISO.slice(0, 7), // YYYY-MM
+          amount,
+        });
+      }
+    });
+
+    // ===== Hitung KPI + Charts =====
+    const now = new Date();
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
+
+    const totalProjects = selectedProjects.length;
+    const totalExpenses = rows.reduce((s, x) => s + (x.amount || 0), 0);
+
+    const thisMonthSpending = rows.filter(x => x.month === thisMonth).reduce((s, x) => s + x.amount, 0);
+    const prevMonthSpending = rows.filter(x => x.month === prevMonth).reduce((s, x) => s + x.amount, 0);
+
+    const monthlySpendingPct = (prevMonthSpending > 0)
+      ? ((thisMonthSpending - prevMonthSpending) / prevMonthSpending) * 100
+      : null;
+
+    const ongoingSet = new Set(rows.filter(x => x.month === thisMonth).map(x => x.project));
+    const ongoingProjects = ongoingSet.size;
+    const nearCompletion = Math.max(0, totalProjects - ongoingProjects);
+
+    // 12 bulan terakhir
+    const keys = [];
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(start.getFullYear(), start.getMonth() - i, 1);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      keys.push(k);
+    }
+    const labels = keys.map(k => {
+      const [y, m] = k.split("-");
+      const d = new Date(Number(y), Number(m) - 1, 1);
+      return d.toLocaleString("en-US", { month: "short" });
+    });
+
+    const sums = {};
+    for (const k of keys) sums[k] = 0;
+    for (const x of rows) {
+      if (sums[x.month] !== undefined) sums[x.month] += x.amount;
+    }
+
+    const expenses12 = keys.map(k => sums[k] || 0);
+
+    // moving average 3 bulan
+    const baseline = expenses12.map((_, i) => {
+      const start = Math.max(0, i - 2);
+      const slice = expenses12.slice(start, i + 1);
+      return slice.reduce((a, b) => a + b, 0) / slice.length;
+    });
+
+    const payload = {
+      success: true,
+      scope,
+      projects, // dropdown selalu lengkap
+      kpi: {
+        totalProjects,
+        monthlySpending: thisMonthSpending,
+        monthlySpendingPct,
+        ongoingProjects,
+        nearCompletion,
+        totalExpenses,
+        expensesNote: "Monitor carefully",
+      },
+      charts: {
+        bar: { labels, data: expenses12, label: "Expenses" },
+        line: {
+          labels,
+          greenLabel: "Avg (3 mo)",
+          green: baseline,
+          redLabel: "Expenses",
+          red: expenses12,
+        },
+      },
+    };
+
+    // ===== CACHE SET =====
+    dashboardCache.set(cacheKey, { ts: Date.now(), data: payload });
+
+    return res.json(payload);
+  } catch (e) {
+    console.error("GET /dashboard/overview error:", e?.response?.data || e);
+    return res.status(500).json({
+      success: false,
+      message: e?.response?.data?.error?.message || e.message || "Gagal generate dashboard overview.",
+    });
+  }
+});
+
+// const META_SHEET = "_PROJECTS";
+
+async function ensureProjectsMetaSheet() {
+  const meta = await sheets.spreadsheets.get({
+    spreadsheetId: SPREADSHEET_ID,
+    fields: "sheets(properties(title))",
+  });
+
+  const titles = (meta.data.sheets || []).map(s => s.properties?.title);
+  if (titles.includes(META_SHEET)) return;
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      requests: [
+        { addSheet: { properties: { title: META_SHEET } } }
+      ],
+    },
+  });
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${META_SHEET}!A1:E1`,
+    valueInputOption: "RAW",
+    requestBody: { values: [["project","client","status","startDate","progress"]] },
+  });
+}
+
+app.get("/projects", authenticate, async (req, res) => {
+  try {
+    await ensureProjectsMetaSheet();
+
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+      fields: "sheets(properties(title))",
+    });
+
+    const tabs = (meta.data.sheets || [])
+      .map(s => s.properties?.title)
+      .filter(Boolean)
+      .filter(t => t !== META_SHEET);
+
+    const metaRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${META_SHEET}!A2:E`,
+    });
+
+    const metaRows = metaRes.data.values || [];
+    const metaMap = new Map();
+    for (const r of metaRows) {
+      const [project, client, status, startDate, progress] = r;
+      if (!project) continue;
+      metaMap.set(project, {
+        client: client || "-",
+        status: status || "Planning",
+        startDate: startDate || "",
+        progress: Number(progress || 0),
+      });
+    }
+
+    const data = tabs.map((name) => {
+      const m = metaMap.get(name) || { client:"-", status:"Planning", startDate:"", progress:0 };
+      return { id: name, name, ...m };
+    });
+
+    res.json({ success: true, data, projects: tabs });
+  } catch (e) {
+    console.error("GET /projects", e?.response?.data || e);
+    res.status(500).json({ success: false, message: "Gagal ambil list project(sheet)." });
+  }
+});
+
+
+app.post("/projects", authenticate, async (req, res) => {
+  try {
+    await ensureProjectsMetaSheet();
+
+    const { name, client, status, startDate, progress } = req.body || {};
+    const projectName = String(name || "").trim();
+    if (!projectName) {
+      return res.status(400).json({ success: false, message: "name wajib diisi." });
+    }
+    if (projectName === META_SHEET) {
+      return res.status(400).json({ success: false, message: "Nama project tidak valid." });
+    }
+
+    // cek sudah ada atau belum
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+      fields: "sheets(properties(title))",
+    });
+    const titles = (meta.data.sheets || []).map(s => s.properties?.title).filter(Boolean);
+    if (titles.includes(projectName)) {
+      return res.status(409).json({ success: false, message: "Project/tab sudah ada." });
+    }
+
+    // create new tab
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { requests: [{ addSheet: { properties: { title: projectName } } }] },
+    });
+
+    // append metadata
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${META_SHEET}!A:E`,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      resource: {
+        values: [[
+          projectName,
+          client || "-",
+          status || "Planning",
+          startDate || "",
+          String(progress ?? 0),
+        ]],
+      },
+    });
+
+    res.json({ success: true, message: "Project berhasil dibuat." });
+  } catch (e) {
+    console.error("POST /projects", e?.response?.data || e);
+    res.status(500).json({ success: false, message: "Gagal membuat project." });
+  }
+});
+
+
+app.delete("/projects/:name", authenticate, async (req, res) => {
+  try {
+    await ensureProjectsMetaSheet();
+
+    const name = String(req.params.name || "").trim();
+    if (!name) return res.status(400).json({ success: false, message: "name kosong" });
+
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+      fields: "sheets(properties(sheetId,title))",
+    });
+
+    const sheet = (meta.data.sheets || []).find(s => s.properties?.title === name);
+    if (!sheet) return res.status(404).json({ success: false, message: "Project tidak ditemukan." });
+
+    // delete sheet tab
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { requests: [{ deleteSheet: { sheetId: sheet.properties.sheetId } }] },
+    });
+
+    // rewrite metadata without this project
+    const metaRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${META_SHEET}!A1:E`,
+    });
+
+    const all = metaRes.data.values || [];
+    const header = all[0] || ["project","client","status","startDate","progress"];
+    const kept = [header, ...all.slice(1).filter(r => (r?.[0] || "") !== name)];
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${META_SHEET}!A1:E`,
+      valueInputOption: "RAW",
+      resource: { values: kept },
+    });
+
+    res.json({ success: true, message: "Project berhasil dihapus." });
+  } catch (e) {
+    console.error("DELETE /projects/:name", e?.response?.data || e);
+    res.status(500).json({ success: false, message: "Gagal hapus project." });
   }
 });
 

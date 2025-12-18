@@ -29,51 +29,59 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  const adminPathMap: Record<string, string> = {
+  "/dashboard": "admin-dashboard",
+  "/projects": "admin-projects",
+  "/finance": "admin-finance",
+  "/materials": "admin-materials",
+  "/settings": "admin-settings",
+  "/documentation": "admin-docs",
+  "/rekapitulasi": "admin-recap",
+};
+
+
    useEffect(() => {
-    const checkAuth = async () => {
-      const path = window.location.pathname;
-      const token = localStorage.getItem("authToken");
+  const path = window.location.pathname;
+  const token = localStorage.getItem("authToken");
 
-      if (!token) {
-        // Tidak ada token → anggap belum login
-        setIsAuthenticated(false);
-        if (path === "/dashboard") {
-          setCurrentPage("login");
-        }
-        return;
-      }
+  const adminPage = adminPathMap[path];
 
-      try {
-        const res = await fetch("http://localhost:4000/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+  // === AKSES ADMIN TANPA TOKEN ===
+  if (adminPage && !token) {
+    setIsAuthenticated(false);
+    setCurrentPage("login");
+    window.history.replaceState(null, "", "/login");
+    return;
+  }
 
-        if (!res.ok) {
-          throw new Error("Token invalid");
-        }
-
-        // Token valid
+  // === ADA TOKEN → VALIDASI KE BACKEND ===
+  if (token && adminPage) {
+    fetch("http://localhost:4000/auth/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Token invalid");
+        return res.json();
+      })
+      .then(() => {
         setIsAuthenticated(true);
-
-        if (path === "/dashboard") {
-          setCurrentPage("admin-dashboard");
-        }
-      } catch (err) {
-        console.error("Auth check failed:", err);
-        // Token rusak / kadaluwarsa → buang
+        setCurrentPage(adminPage);
+      })
+      .catch(() => {
         localStorage.removeItem("authToken");
         setIsAuthenticated(false);
+        setCurrentPage("login");
+        window.history.replaceState(null, "", "/login");
+      });
+    return;
+  }
 
-        if (path === "/dashboard") {
-          setCurrentPage("login");
-        }
-      }
-    };
+  // === PAGE BIASA ===
+  if (!adminPage) {
+    setIsAuthenticated(!!token);
+  }
+}, []);
 
-    checkAuth();
-  }, []);
 
 
   const handleLogin = () => {
@@ -107,9 +115,18 @@ export default function App() {
   const handleLogoutCancel = () => setShowLogoutModal(false);
 
   const handleNavigate = (page: string) => {
-    setCurrentPage(page);
-    window.scrollTo(0, 0);
-  };
+  const token = localStorage.getItem("authToken");
+
+  if (page.startsWith("admin-") && !token) {
+    setCurrentPage("login");
+    window.history.pushState(null, "", "/login");
+    return;
+  }
+
+  setCurrentPage(page);
+  window.scrollTo(0, 0);
+};
+
 
   // Public page list
   const publicPages = ["home", "about", "services", "portfolio", "contact", "login"];
