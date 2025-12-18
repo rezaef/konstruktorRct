@@ -16,14 +16,10 @@ function formatIDR(v: number) {
 }
 
 function getTokenSafe() {
-  // token kamu disimpan oleh LoginPage sebagai "authToken"
   const raw = localStorage.getItem("authToken");
   if (!raw) return null;
 
-  // bersihin kalau tersimpan dengan quotes: "\"eyJ...\""
   const cleaned = raw.replace(/^"+|"+$/g, "").trim();
-
-  // validasi bentuk JWT: header.payload.signature
   const isJWT = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(cleaned);
   if (!isJWT) return null;
 
@@ -61,8 +57,6 @@ export function AdminDashboard() {
         return;
       }
 
-
-      // kalau backend balikin non-200
       if (!res.ok) {
         let msg = `Gagal load dashboard (${res.status})`;
         try {
@@ -77,7 +71,6 @@ export function AdminDashboard() {
 
       const json = await res.json();
 
-      // guard structure
       if (!json?.success) {
         setError(json?.message || "Response tidak sukses.");
         setData(null);
@@ -107,13 +100,17 @@ export function AdminDashboard() {
   }, [scope]);
 
   if (loading) {
-    return <div className="p-8 text-gray-500">Loading dashboard…</div>;
+    return (
+      <div className="mx-auto max-w-7xl px-6 py-8 text-sm text-muted-foreground">
+        Loading dashboard…
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="p-8">
-        <div className="bg-white p-4 rounded-lg shadow border border-red-200 text-red-700">
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="rounded-2xl border border-destructive/30 bg-card p-4 text-sm text-destructive">
           {error}
         </div>
       </div>
@@ -121,7 +118,11 @@ export function AdminDashboard() {
   }
 
   if (!data) {
-    return <div className="p-8 text-gray-500">No data.</div>;
+    return (
+      <div className="mx-auto max-w-7xl px-6 py-8 text-sm text-muted-foreground">
+        No data.
+      </div>
+    );
   }
 
   const { kpi, charts } = data;
@@ -138,113 +139,138 @@ export function AdminDashboard() {
   }));
 
   return (
-    <div className="p-8">
+    <div className="mx-auto max-w-7xl px-6 py-8">
       {/* Header + Filter */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-[#2C2C2C]">Dashboard Overview</h1>
-          <p className="text-gray-600">
-            Welcome back! Here's what's happening with your projects.
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Dashboard Overview
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Welcome back! Here’s what’s happening with your projects.
           </p>
         </div>
 
-        <select
-          className="border rounded-lg px-4 py-2 bg-white"
-          value={scope}
-          onChange={(e) => setScope(e.target.value)}
-        >
-          <option value="all">All Projects</option>
-          {projects.map((p) => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
+        <div className="w-full sm:w-auto">
+          <label className="text-xs text-muted-foreground">Project scope</label>
+          <select
+            className="mt-2 w-full sm:w-[220px] rounded-xl border border-border/60 bg-background px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+          >
+            <option value="all">All Projects</option>
+            {projects.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* KPI CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-[#D4AF37]">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-gray-600">Total Projects</h4>
-            <FolderKanban size={24} className="text-[#D4AF37]" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        {/* Total Projects */}
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">Total Projects</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/25">
+              <FolderKanban size={18} />
+            </div>
           </div>
-          <p className="text-3xl text-[#2C2C2C]">{kpi.totalProjects}</p>
+          <div className="mt-3 text-3xl font-semibold text-foreground">{kpi.totalProjects}</div>
+          <div className="mt-2 text-xs text-muted-foreground">Overview across scope</div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-gray-600">Monthly Spending</h4>
-            <DollarSign size={24} className="text-green-500" />
+        {/* Monthly Spending */}
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">Monthly Spending</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary/15 text-secondary ring-1 ring-secondary/25">
+              <DollarSign size={18} />
+            </div>
           </div>
-          <p className="text-3xl text-[#2C2C2C]">
+          <div className="mt-3 text-2xl font-semibold text-foreground">
             {formatIDR(kpi.monthlySpending)}
-          </p>
+          </div>
           {kpi.monthlySpendingPct !== null && kpi.monthlySpendingPct !== undefined && (
-            <p className="text-sm text-green-600 mt-2">
-              {kpi.monthlySpendingPct > 0 ? "+" : ""}
-              {Number(kpi.monthlySpendingPct).toFixed(1)}% from last month
-            </p>
+            <div className="mt-2 text-xs text-muted-foreground">
+              <span className="text-secondary font-semibold">
+                {kpi.monthlySpendingPct > 0 ? "+" : ""}
+                {Number(kpi.monthlySpendingPct).toFixed(1)}%
+              </span>{" "}
+              from last month
+            </div>
           )}
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-gray-600">Ongoing Projects</h4>
-            <TrendingUp size={24} className="text-blue-500" />
+        {/* Ongoing Projects */}
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">Ongoing Projects</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/25">
+              <TrendingUp size={18} />
+            </div>
           </div>
-          <p className="text-3xl text-[#2C2C2C]">{kpi.ongoingProjects}</p>
-          <p className="text-sm text-gray-500 mt-2">
-            {kpi.nearCompletion} near completion
-          </p>
+          <div className="mt-3 text-3xl font-semibold text-foreground">{kpi.ongoingProjects}</div>
+          <div className="mt-2 text-xs text-muted-foreground">{kpi.nearCompletion} near completion</div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-gray-600">Total Expenses</h4>
-            <AlertCircle size={24} className="text-orange-500" />
+        {/* Total Expenses */}
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">Total Expenses</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-destructive/15 text-destructive ring-1 ring-destructive/25">
+              <AlertCircle size={18} />
+            </div>
           </div>
-          <p className="text-3xl text-[#2C2C2C]">
+          <div className="mt-3 text-2xl font-semibold text-foreground">
             {formatIDR(kpi.totalExpenses)}
-          </p>
-          <p className="text-sm text-orange-600 mt-2">Monitor carefully</p>
+          </div>
+          <div className="mt-2 text-xs text-muted-foreground">Monitor carefully</div>
         </div>
       </div>
 
       {/* CHARTS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-[#2C2C2C] mb-4">Monthly Expenses Overview</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip formatter={(v) => formatIDR(Number(v))} />
-              <Bar dataKey="expenses" fill="#D4AF37" />
-            </BarChart>
-          </ResponsiveContainer>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-foreground mb-4">
+            Monthly Expenses Overview
+          </h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(v) => formatIDR(Number(v))} />
+                <Bar dataKey="expenses" fill="#c9a227" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-[#2C2C2C] mb-4">Financial Report</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={lineData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip formatter={(v) => formatIDR(Number(v))} />
-              <Line type="monotone" dataKey="baseline" stroke="#10b981" strokeWidth={2} />
-              <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-foreground mb-4">Financial Report</h3>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={lineData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(v) => formatIDR(Number(v))} />
+                <Line type="monotone" dataKey="baseline" stroke="#1f7a6c" strokeWidth={2} />
+                <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
 
-          <div className="flex justify-center gap-6 mt-4">
+          <div className="mt-4 flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-500 rounded" />
-              <span className="text-sm text-gray-600">{charts.line.greenLabel}</span>
+              <div className="h-3 w-3 rounded bg-secondary" />
+              <span>{charts.line.greenLabel}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-500 rounded" />
-              <span className="text-sm text-gray-600">{charts.line.redLabel}</span>
+              <div className="h-3 w-3 rounded bg-destructive" />
+              <span>{charts.line.redLabel}</span>
             </div>
           </div>
         </div>

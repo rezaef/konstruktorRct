@@ -22,7 +22,7 @@ import { AdminFinancePage } from "./pages/AdminFinancePage";
 import { AdminMaterialsPage } from "./pages/AdminMaterialsPage";
 import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { AdminDocsPage } from "./pages/AdminDocsPage";
-import { AdminRecapPage } from "./pages/AdminRecapPage"; 
+import { AdminRecapPage } from "./pages/AdminRecapPage";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("home");
@@ -30,59 +30,60 @@ export default function App() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const adminPathMap: Record<string, string> = {
-  "/dashboard": "admin-dashboard",
-  "/projects": "admin-projects",
-  "/finance": "admin-finance",
-  "/materials": "admin-materials",
-  "/settings": "admin-settings",
-  "/documentation": "admin-docs",
-  "/rekapitulasi": "admin-recap",
-};
+    "/dashboard": "admin-dashboard",
+    "/projects": "admin-projects",
+    "/finance": "admin-finance",
+    "/materials": "admin-materials",
+    "/settings": "admin-settings",
+    "/documentation": "admin-docs",
+    "/rekapitulasi": "admin-recap",
+  };
 
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
 
-   useEffect(() => {
-  const path = window.location.pathname;
-  const token = localStorage.getItem("authToken");
+  useEffect(() => {
+    const path = window.location.pathname;
+    const token = localStorage.getItem("authToken");
 
-  const adminPage = adminPathMap[path];
+    const adminPage = adminPathMap[path];
 
-  // === AKSES ADMIN TANPA TOKEN ===
-  if (adminPage && !token) {
-    setIsAuthenticated(false);
-    setCurrentPage("login");
-    window.history.replaceState(null, "", "/login");
-    return;
-  }
+    // === AKSES ADMIN TANPA TOKEN ===
+    if (adminPage && !token) {
+      setIsAuthenticated(false);
+      setCurrentPage("login");
+      window.history.replaceState(null, "", "/login");
+      return;
+    }
 
-  // === ADA TOKEN → VALIDASI KE BACKEND ===
-  if (token && adminPage) {
-    fetch("http://localhost:4000/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Token invalid");
-        return res.json();
+    // === ADA TOKEN → VALIDASI KE BACKEND ===
+    if (token && adminPage) {
+      fetch("http://localhost:4000/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .then(() => {
-        setIsAuthenticated(true);
-        setCurrentPage(adminPage);
-      })
-      .catch(() => {
-        localStorage.removeItem("authToken");
-        setIsAuthenticated(false);
-        setCurrentPage("login");
-        window.history.replaceState(null, "", "/login");
-      });
-    return;
-  }
+        .then((res) => {
+          if (!res.ok) throw new Error("Token invalid");
+          return res.json();
+        })
+        .then(() => {
+          setIsAuthenticated(true);
+          setCurrentPage(adminPage);
+        })
+        .catch(() => {
+          localStorage.removeItem("authToken");
+          setIsAuthenticated(false);
+          setCurrentPage("login");
+          window.history.replaceState(null, "", "/login");
+        });
+      return;
+    }
 
-  // === PAGE BIASA ===
-  if (!adminPage) {
-    setIsAuthenticated(!!token);
-  }
-}, []);
-
-
+    // === PAGE BIASA ===
+    if (!adminPage) {
+      setIsAuthenticated(!!token);
+    }
+  }, []);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
@@ -93,7 +94,6 @@ export default function App() {
       window.history.pushState(null, "", "/dashboard");
     }
   };
-
 
   const handleLogoutClick = () => setShowLogoutModal(true);
 
@@ -111,22 +111,20 @@ export default function App() {
     }
   };
 
-
   const handleLogoutCancel = () => setShowLogoutModal(false);
 
   const handleNavigate = (page: string) => {
-  const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("authToken");
 
-  if (page.startsWith("admin-") && !token) {
-    setCurrentPage("login");
-    window.history.pushState(null, "", "/login");
-    return;
-  }
+    if (page.startsWith("admin-") && !token) {
+      setCurrentPage("login");
+      window.history.pushState(null, "", "/login");
+      return;
+    }
 
-  setCurrentPage(page);
-  window.scrollTo(0, 0);
-};
-
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+  };
 
   // Public page list
   const publicPages = ["home", "about", "services", "portfolio", "contact", "login"];
@@ -141,7 +139,7 @@ export default function App() {
     "admin-materials",
     "admin-settings",
     "admin-docs",
-    "admin-recap", // <-- DITAMBAHKAN
+    "admin-recap",
   ];
   const isAdminPage = adminPages.includes(currentPage);
 
@@ -174,7 +172,7 @@ export default function App() {
         return <AdminSettingsPage />;
       case "admin-docs":
         return <AdminDocsPage />;
-      case "admin-recap": // <-- DITAMBAHKAN
+      case "admin-recap":
         return <AdminRecapPage />;
 
       default:
@@ -186,7 +184,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    // ✅ DIUBAH: background & text ikut theme (real-estate dark)
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Layout untuk halaman publik */}
       {isPublicPage && currentPage !== "login" && (
         <>
@@ -203,13 +202,14 @@ export default function App() {
 
       {/* Layout untuk halaman admin */}
       {isAdminPage && isAuthenticated && (
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen bg-background text-foreground">
           <AdminSidebar
             currentPage={currentPage}
             onNavigate={handleNavigate}
             onLogout={handleLogoutClick}
           />
-          <main className="flex-1 bg-gray-50">{renderPage()}</main>
+          {/* ✅ DIUBAH: jangan bg-gray-50 supaya dark theme masuk */}
+          <main className="flex-1 bg-background text-foreground">{renderPage()}</main>
         </div>
       )}
 
