@@ -25,6 +25,8 @@ export function AdminProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
 
   // modal create
   const [openCreate, setOpenCreate] = useState(false);
@@ -37,34 +39,51 @@ export function AdminProjectsPage() {
   });
 
   async function fetchProjects() {
-    setLoading(true);
-    setError(null);
+  setLoading(true);
+  setError(null);
 
-    try {
-      const token = getTokenSafe();
-      if (!token) {
-        setError("Token tidak valid. Silakan login ulang.");
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(`${API_BASE}/projects`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        throw new Error(j?.message || `Gagal load projects (${res.status})`);
-      }
-
-      const j = await res.json();
-      setProjects(j.data || []);
-    } catch (e: any) {
-      setError(e?.message || "Gagal load projects.");
-    } finally {
-      setLoading(false);
+  try {
+    const token = getTokenSafe();
+    if (!token) {
+      setError("Token tidak valid. Silakan login ulang.");
+      setProjects([]);
+      return;
     }
+
+    const res = await fetch(`${API_BASE}/projects`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    const j = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(j?.message || `Gagal load projects (${res.status})`);
+    }
+
+    // ✅ fallback: backend bisa balikin {data:[...]} atau {projects:[...]}
+    if (Array.isArray(j.data)) {
+      setProjects(j.data);
+    } else if (Array.isArray(j.projects)) {
+      setProjects(
+        j.projects.map((name: string) => ({
+          id: name,
+          name,
+          client: "-",
+          status: "Planning",
+          startDate: "",
+          progress: 0,
+        }))
+      );
+    } else {
+      setProjects([]);
+    }
+  } catch (e: any) {
+    setError(e?.message || "Gagal load projects.");
+    setProjects([]);
+  } finally {
+    setLoading(false);
   }
+} 
 
   async function createProject() {
     try {
@@ -80,10 +99,20 @@ export function AdminProjectsPage() {
         body: JSON.stringify(form),
       });
 
+      const j = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
         throw new Error(j?.message || `Gagal create project (${res.status})`);
       }
+
+      // ✅ notif sukses
+      setNotice({ type: "ok", text: j?.message || "Project berhasil dibuat." });
+
+      setOpenCreate(false);
+      setForm({ name: "", client: "", status: "Planning", startDate: "", progress: 0 });
+
+      await fetchProjects(); // ✅ pastikan refresh selesai
+
 
       setOpenCreate(false);
       setForm({ name: "", client: "", status: "Planning", startDate: "", progress: 0 });
@@ -149,6 +178,18 @@ export function AdminProjectsPage() {
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
+        {notice && (
+        <div
+          className={`mb-6 rounded-lg border px-4 py-3 ${
+            notice.type === "ok"
+              ? "bg-green-50 border-green-200 text-green-700"
+              : "bg-red-50 border-red-200 text-red-700"
+          }`}
+        >
+          {notice.text}
+        </div>
+      )}
+
         <div>
           <h1 className="text-[#2C2C2C]">Project Management</h1>
           <p className="text-gray-600">Manage and track all your interior design projects</p>
