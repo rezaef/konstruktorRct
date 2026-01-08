@@ -93,6 +93,12 @@ export type CashoutCreateResponse = {
   data: { date: string; pengeluaran: string; metode: string; amount: number };
 };
 
+export type CashoutSummaryResponse = {
+  success: boolean;
+  projectSheet: string;
+  byMonth: Record<string, number>; // key: YYYY-MM
+};
+
 export async function listProjects(token: string) {
   return apiGet<ProjectsResponse>(`/projects`, token);
 }
@@ -107,6 +113,11 @@ export async function addCashout(
   payload: { projectSheet: string; date: string; pengeluaran: string; metode: string; amount: string }
 ) {
   return apiPost<CashoutCreateResponse>(`/cashout`, payload, token);
+}
+
+export async function getCashoutSummary(token: string, projectSheet: string) {
+  const qs = new URLSearchParams({ projectSheet });
+  return apiGet<CashoutSummaryResponse>(`/cashout/summary?${qs.toString()}`, token);
 }
 
 export async function getDashboardOverview(project: string = "all") {

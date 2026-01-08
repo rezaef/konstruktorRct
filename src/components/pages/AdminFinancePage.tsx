@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { TrendingDown, Download } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { TrendingDown, Download } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -8,61 +8,60 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
+} from "recharts";
 
-/**
- * === KONTRAK DATA (samakan dengan response API kamu) ===
- * Minimal field yang kita butuhkan:
- * - id: string | number
- * - date: string (YYYY-MM-DD / ISO string)
- * - description: string
- * - category?: string
- * - amount: number (POSITIVE untuk cashout)
- *
- * Jika di API kamu namanya beda (mis. tanggal, keterangan, nominal),
- * tinggal mapping di normalizeCashout().
- */
-type Cashout = {
-  id: string | number;
-  date: string;
+import {
+  clearAuthToken,
+  getAuthToken,
+  getCashout,
+  getCashoutSummary,
+  listProjects,
+  type CashoutItem,
+} from "../../services/backendApi";
+
+type CashoutRow = {
+  id: string;
+  date: string; // YYYY-MM-DD
   description: string;
-  category?: string;
+  category: string; // metode
   amount: number;
 };
 
 type MonthlyPoint = { month: string; cashout: number };
 
-function toMonthKey(dateStr: string) {
-  const d = new Date(dateStr);
-  // fallback kalau dateStr format "YYYY-MM-DD"
-  if (Number.isNaN(d.getTime())) {
-    const [y, m] = dateStr.split('-');
-    return `${y}-${m}`;
-  }
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
+function fmtRp(n: number) {
+  return new Intl.NumberFormat("id-ID").format(n || 0);
 }
 
 function monthLabelFromKey(key: string) {
   // key: YYYY-MM
-  const [, mm] = key.split('-');
+  const [, mm] = key.split("-");
   const map: Record<string, string> = {
-    '01': 'Jan', '02': 'Feb', '03': 'Mar', '04': 'Apr', '05': 'May', '06': 'Jun',
-    '07': 'Jul', '08': 'Aug', '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Dec',
+    "01": "Jan",
+    "02": "Feb",
+    "03": "Mar",
+    "04": "Apr",
+    "05": "May",
+    "06": "Jun",
+    "07": "Jul",
+    "08": "Aug",
+    "09": "Sep",
+    "10": "Oct",
+    "11": "Nov",
+    "12": "Dec",
   };
   return map[mm] ?? key;
 }
 
-function buildMonthly(transactions: Cashout[]): MonthlyPoint[] {
+function buildMonthly(transactions: CashoutRow[]): MonthlyPoint[] {
   const bucket = new Map<string, number>();
 
   for (const t of transactions) {
-    const key = toMonthKey(t.date);
+    const key = (t.date || "").slice(0, 7); // YYYY-MM
+    if (!/^\d{4}-\d{2}$/.test(key)) continue;
     bucket.set(key, (bucket.get(key) ?? 0) + (Number(t.amount) || 0));
   }
 
-  // sort ascending by YYYY-MM
   const sorted = Array.from(bucket.entries()).sort((a, b) => a[0].localeCompare(b[0]));
 
   return sorted.map(([key, sum]) => ({
@@ -71,147 +70,253 @@ function buildMonthly(transactions: Cashout[]): MonthlyPoint[] {
   }));
 }
 
-/**
- * Sesuaikan endpoint ini dengan backend kamu.
- * Contoh umum:
- * - VITE_API_BASE_URL=http://localhost:8000
- * - endpoint: /api/cashouts
- */
-function getApiBaseUrl() {
-  // Vite
-  const vite = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
-  if (vite) return vite;
-
-  // CRA fallback (aman untuk TS di Vite karena tidak refer "process" langsung)
-  const cra = (globalThis as any)?.process?.env?.REACT_APP_API_BASE_URL as string | undefined;
-  if (cra) return cra;
-
-  return '';
+function getTokenSafe() {
+  const raw = getAuthToken();
+  if (!raw) return null;
+  const cleaned = raw.replace(/^"+|"+$/g, "").trim();
+  const isJWT = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(cleaned);
+  return isJWT ? cleaned : null;
 }
 
-function getAuthToken() {
-  // sesuaikan dengan auth kamu (mis. "token", "access_token", dll)
-  return localStorage.getItem('token') || localStorage.getItem('access_token') || '';
-}
-
-// ✅ mapping response API -> Cashout standar page ini
-function normalizeCashout(raw: any): Cashout {
-  return {
-    id: raw.id ?? raw._id ?? `${raw.date}-${raw.amount}-${Math.random()}`,
-    date: raw.date ?? raw.tanggal ?? raw.created_at ?? raw.createdAt,
-    description: raw.description ?? raw.keterangan ?? raw.note ?? raw.nama ?? 'Cash Out',
-    category: raw.category ?? raw.kategori ?? raw.type ?? 'Operational',
-    amount: Number(raw.amount ?? raw.nominal ?? raw.total ?? 0),
-  };
+function uniqYearsFromByMonth(byMonth: Record<string, number>) {
+  const years = new Set<string>();
+  Object.keys(byMonth || {}).forEach((k) => {
+    const y = k.slice(0, 4);
+    if (/^\d{4}$/.test(y)) years.add(y);
+  });
+  return Array.from(years).sort((a, b) => b.localeCompare(a));
 }
 
 export function AdminFinancePage() {
-  const [cashouts, setCashouts] = useState<Cashout[]>([]);
+  const [token, setToken] = useState<string | null>(null);
+
+  const [projects, setProjects] = useState<string[]>([]);
+  const [projectSheet, setProjectSheet] = useState<string>("");
+
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
+  const [year, setYear] = useState<string>(String(new Date().getFullYear()));
+
+  const [cashouts, setCashouts] = useState<CashoutRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
-  // === API CONFIG (ubah ini kalau endpoint kamu beda) ===
-  const API_BASE = getApiBaseUrl(); // optional
-  const CASHOUT_ENDPOINT = `${API_BASE}/api/cashouts`; // <-- GANTI sesuai route backend kamu
-
+  // ===== Init token =====
   useEffect(() => {
-    let isMounted = true;
+    const t = getTokenSafe();
+    setToken(t);
+    if (!t) {
+      setError("Token tidak valid / tidak ditemukan. Silakan login ulang.");
+      // biar konsisten sama halaman lain
+      window.location.pathname = "/login";
+    }
+  }, []);
 
-    async function fetchCashouts() {
+  // ===== Load project list =====
+  useEffect(() => {
+    if (!token) return;
+    let mounted = true;
+
+    (async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await listProjects(token);
+        const list = res.projects || [];
+        if (!mounted) return;
+
+        setProjects(list);
+
+        // pilih project default
+        const saved = localStorage.getItem("financeProjectSheet") || "";
+        const next = (saved && list.includes(saved)) ? saved : (list[0] || "");
+        setProjectSheet(next);
+      } catch (e: any) {
+        if (!mounted) return;
+
+        if (e?.status === 401) {
+          clearAuthToken();
+          window.location.pathname = "/login";
+          return;
+        }
+        setError(e?.message || "Gagal mengambil daftar project.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [token]);
+
+  // persist selection
+  useEffect(() => {
+    if (projectSheet) localStorage.setItem("financeProjectSheet", projectSheet);
+  }, [projectSheet]);
+
+  // ===== Load summary + YTD items =====
+  useEffect(() => {
+    if (!token || !projectSheet) return;
+    let mounted = true;
+
+    (async () => {
       setLoading(true);
-      setError('');
+      setError("");
 
       try {
-        const token = getAuthToken();
+        // 1) ambil summary semua bulan (keys: YYYY-MM)
+        const summary = await getCashoutSummary(token, projectSheet);
+        if (!mounted) return;
 
-        const res = await fetch(CASHOUT_ENDPOINT, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+        const byMonth = summary.byMonth || {};
+        const years = uniqYearsFromByMonth(byMonth);
+        setAvailableYears(years);
 
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(`API error ${res.status}: ${text || res.statusText}`);
+        // kalau year yang dipilih tidak ada datanya, pindah ke year terbaru yang ada
+        const nextYear = (years.includes(year) ? year : (years[0] || year));
+        if (nextYear !== year) setYear(nextYear);
+
+        // 2) ambil list bulan untuk year tsb
+        const monthKeys = Object.keys(byMonth)
+          .filter((k) => k.startsWith(`${nextYear}-`))
+          .filter((k) => /^\d{4}-\d{2}$/.test(k))
+          .sort((a, b) => a.localeCompare(b));
+
+        if (monthKeys.length === 0) {
+          setCashouts([]);
+          return;
         }
 
-        const json = await res.json();
+        // 3) fetch detail per bulan (YTD)
+        const detail = await Promise.all(
+          monthKeys.map((m) => getCashout(token, projectSheet, m))
+        );
 
-        // Fleksibel: {data: []} atau [] langsung
-        const rows = Array.isArray(json) ? json : (json.data ?? json.cashouts ?? []);
-        const normalized: Cashout[] = rows.map(normalizeCashout);
+        if (!mounted) return;
 
-        // pastikan cashout only (amount > 0)
-        const onlyCashout = normalized
-          .filter((x) => Number(x.amount) > 0)
-          .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const rows: CashoutRow[] = detail
+          .flatMap((d) => d.items || [])
+          .map((x: CashoutItem) => ({
+            id: `${projectSheet}-${x.sheetRow}-${x.date}`,
+            date: x.date,
+            description: x.pengeluaran,
+            category: x.metode || "-",
+            amount: Number(x.amount) || 0,
+          }))
+          .filter((x) => x.amount > 0)
+          .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
-        if (isMounted) setCashouts(onlyCashout);
+        setCashouts(rows);
       } catch (e: any) {
-        if (isMounted) setError(e?.message || 'Failed to fetch cashout data');
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
+        if (!mounted) return;
 
-    fetchCashouts();
+        if (e?.status === 401) {
+          clearAuthToken();
+          window.location.pathname = "/login";
+          return;
+        }
+        setError(e?.message || "Failed to load Finance data");
+        setCashouts([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+
     return () => {
-      isMounted = false;
+      mounted = false;
     };
-  }, [CASHOUT_ENDPOINT]);
+    // sengaja include year agar reload YTD saat user ganti tahun
+  }, [token, projectSheet, year]);
 
   const totalCashout = useMemo(
     () => cashouts.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
     [cashouts]
   );
 
-  const monthlyCashout = useMemo(() => buildMonthly(cashouts), [cashouts]);
+  const monthlyCashout = useMemo(() => buildMonthly(cashouts).slice(-12), [cashouts]);
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Description', 'Category', 'Amount'];
+    const headers = ["Date", "Description", "Category", "Amount"];
     const rows = cashouts.map((t) => [
       t.date,
       // escape commas & quotes biar aman
       `"${String(t.description).replace(/"/g, '""')}"`,
-      `"${String(t.category ?? '').replace(/"/g, '""')}"`,
+      `"${String(t.category ?? "").replace(/"/g, '""')}"`,
       t.amount,
     ]);
 
-    const csvContent = [headers, ...rows].map((r) => r.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csvContent = [headers, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = 'cashout-report.csv';
+    link.download = `cashout-report-${projectSheet || "project"}-${year}.csv`;
     link.click();
   };
 
   return (
     <div className="p-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col gap-3 md:flex-row md:justify-between md:items-center mb-8">
         <div>
           <h1 className="text-[#2C2C2C]">Finance & Reports</h1>
           <p className="text-gray-600">Cash out monitoring & expense reports</p>
         </div>
 
-        <button
-          onClick={handleExportCSV}
-          disabled={loading || cashouts.length === 0}
-          className="px-6 py-3 bg-[#D4AF37] text-white rounded-lg hover:bg-[#C19B2B] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          <Download size={18} />
-          Export CSV
-        </button>
+        <div className="flex items-center gap-3">
+          <select
+            value={projectSheet}
+            onChange={(e) => setProjectSheet(e.target.value)}
+            disabled={loading || projects.length === 0}
+            className="border rounded-lg px-3 py-2 bg-white text-sm"
+            title="Project (Sheet)"
+          >
+            {projects.length === 0 ? (
+              <option value="">No project</option>
+            ) : (
+              projects.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))
+            )}
+          </select>
+
+          <select
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            disabled={loading || availableYears.length === 0}
+            className="border rounded-lg px-3 py-2 bg-white text-sm"
+            title="Year"
+          >
+            {availableYears.length === 0 ? (
+              <option value={year}>{year}</option>
+            ) : (
+              availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))
+            )}
+          </select>
+
+          <button
+            onClick={handleExportCSV}
+            disabled={loading || cashouts.length === 0}
+            className="px-6 py-3 bg-[#D4AF37] text-white rounded-lg hover:bg-[#C19B2B] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <Download size={18} />
+            Export CSV
+          </button>
+        </div>
       </div>
 
       {/* State: loading / error */}
       {loading && (
         <div className="bg-white p-6 rounded-lg shadow-md mb-8 text-gray-700">
-          Loading cashout data...
+          Loading finance data...
         </div>
       )}
 
@@ -220,7 +325,9 @@ export function AdminFinancePage() {
           <p className="text-red-600 font-medium">Failed to load Finance data</p>
           <p className="text-gray-600 mt-1 text-sm">{error}</p>
           <p className="text-gray-500 mt-3 text-sm">
-            Cek endpoint: <span className="font-mono">{CASHOUT_ENDPOINT}</span>
+            Endpoint yang dipakai: <span className="font-mono">/projects</span>,{" "}
+            <span className="font-mono">/cashout/summary</span>,{" "}
+            <span className="font-mono">/cashout</span>
           </p>
         </div>
       )}
@@ -229,12 +336,10 @@ export function AdminFinancePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-gray-600">Total Cash Out</h4>
+            <h4 className="text-gray-600">Total Cash Out ({year})</h4>
             <TrendingDown size={22} className="text-red-500" />
           </div>
-          <p className="text-3xl text-[#2C2C2C] mb-1">
-            Rp {totalCashout.toLocaleString('id-ID')}
-          </p>
+          <p className="text-3xl text-[#2C2C2C] mb-1">Rp {fmtRp(totalCashout)}</p>
           <p className="text-sm text-red-600">Year to date</p>
         </div>
       </div>
@@ -243,7 +348,7 @@ export function AdminFinancePage() {
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
         <h3 className="text-[#2C2C2C] mb-6">Monthly Cash Out</h3>
 
-        {(!loading && monthlyCashout.length === 0) ? (
+        {!loading && monthlyCashout.length === 0 ? (
           <div className="text-gray-600">Belum ada data cashout untuk ditampilkan.</div>
         ) : (
           <ResponsiveContainer width="100%" height={350}>
@@ -251,9 +356,7 @@ export function AdminFinancePage() {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip
-                formatter={(value) => `Rp ${Number(value).toLocaleString('id-ID')}`}
-              />
+              <Tooltip formatter={(value) => `Rp ${fmtRp(Number(value))}`} />
               <Bar dataKey="cashout" fill="#ef4444" name="Cash Out" />
             </BarChart>
           </ResponsiveContainer>
@@ -264,6 +367,9 @@ export function AdminFinancePage() {
       <div className="bg-white rounded-lg shadow-md">
         <div className="p-6 border-b">
           <h3 className="text-[#2C2C2C]">Cash Out Transactions</h3>
+          <p className="text-gray-500 text-sm mt-1">
+            Menampilkan transaksi cashout untuk <b>{projectSheet || "-"}</b> tahun <b>{year}</b>.
+          </p>
         </div>
 
         <div className="overflow-x-auto">
@@ -291,12 +397,10 @@ export function AdminFinancePage() {
                     <td className="px-6 py-4 text-gray-700">{t.description}</td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-sm">
-                        {t.category || 'Operational'}
+                        {t.category || "-"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-red-600">
-                      Rp {Number(t.amount).toLocaleString('id-ID')}
-                    </td>
+                    <td className="px-6 py-4 text-right text-red-600">Rp {fmtRp(t.amount)}</td>
                   </tr>
                 ))
               )}
