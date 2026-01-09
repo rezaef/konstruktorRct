@@ -191,7 +191,7 @@ export function AdminProjectsPage() {
       )}
 
         <div>
-          <h1 className="text-[#2C2C2C]">Project Management</h1>
+          <h1 className="text-[#0B1F3B]">Project Management</h1>
           <p className="text-gray-600">Manage and track all your interior design projects</p>
         </div>
         <button
@@ -282,7 +282,7 @@ export function AdminProjectsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
         <div className="bg-white p-6 rounded-lg shadow-md text-center">
           <p className="text-gray-600 mb-2">Total Projects</p>
-          <p className="text-3xl text-[#2C2C2C]">{projects.length}</p>
+          <p className="text-3xl text-[#0B1F3B]">{projects.length}</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md text-center">
           <p className="text-gray-600 mb-2">In Progress</p>

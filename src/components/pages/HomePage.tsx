@@ -68,7 +68,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
             </p>
             <button
               onClick={() => onNavigate('contact')}
-              className="px-8 py-4 bg-[#E89B7C] text-white rounded-lg hover:bg-[#D8845F] transition-colors inline-flex items-center gap-2"
+              className="px-8 py-4 bg-[#0E7C66] text-white rounded-lg hover:bg-[#0A6A58] transition-colors inline-flex items-center gap-2 shadow-sm"
             >
               Contact Us
               <ArrowRight size={20} />
@@ -80,7 +80,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       {/* Company Profile */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-[#5BA8A8] mb-4">About HDA Interior</h2>
+          <h2 className="text-[#0B1F3B] text-3xl font-semibold tracking-tight mb-4">About <span className="text-[#0E7C66]">HDA</span> Interior</h2>
           <p className="text-gray-600 max-w-3xl mx-auto">
             We are a premier interior design and contracting company specializing in creating beautiful, 
             functional spaces that reflect your unique style and needs. With years of experience and a 
@@ -89,22 +89,22 @@ export function HomePage({ onNavigate }: HomePageProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center p-6">
-            <div className="w-16 h-16 bg-[#5BA8A8] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-[#E2E8F0]">
+            <div className="w-16 h-16 bg-[#0E7C66] rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
               <Award size={32} className="text-white" />
             </div>
             <h3 className="mb-2">15+ Years</h3>
             <p className="text-gray-600">Of Excellence</p>
           </div>
-          <div className="text-center p-6">
-            <div className="w-16 h-16 bg-[#E89B7C] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-[#E2E8F0]">
+            <div className="w-16 h-16 bg-[#D4AF37] rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
               <CheckCircle size={32} className="text-white" />
             </div>
             <h3 className="mb-2">200+ Projects</h3>
             <p className="text-gray-600">Successfully Completed</p>
           </div>
-          <div className="text-center p-6">
-            <div className="w-16 h-16 bg-[#9B7CB5] rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-[#E2E8F0]">
+            <div className="w-16 h-16 bg-[#102A4D] rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4">
               <Users size={32} className="text-white" />
             </div>
             <h3 className="mb-2">150+ Clients</h3>
@@ -117,7 +117,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-[#5BA8A8] mb-4">Featured Projects</h2>
+            <h2 className="text-[#0B1F3B] text-3xl font-semibold tracking-tight mb-4">Featured Projects</h2>
             <p className="text-gray-600">
               Explore our latest interior design masterpieces
             </p>
@@ -138,7 +138,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
                   />
                 </div>
                 <div className="p-4">
-                  <span className="text-sm text-[#5BA8A8]">{project.category}</span>
+                  <span className="text-xs font-semibold tracking-wider uppercase text-[#0E7C66]">{project.category}</span>
                   <h3 className="mt-1">{project.title}</h3>
                 </div>
               </div>
@@ -148,7 +148,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
           <div className="text-center mt-10">
             <button
               onClick={() => onNavigate('portfolio')}
-              className="px-6 py-3 border-2 border-[#5BA8A8] text-[#5BA8A8] rounded-lg hover:bg-[#5BA8A8] hover:text-white transition-colors"
+              className="px-6 py-3 border border-[#0E7C66] text-[#0B1F3B] rounded-lg hover:bg-[#0E7C66] hover:text-white transition-colors font-semibold shadow-sm"
             >
               View All Projects
             </button>
@@ -159,7 +159,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       {/* Services Overview */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-[#5BA8A8] mb-4">Our Services</h2>
+          <h2 className="text-[#0B1F3B] text-3xl font-semibold tracking-tight mb-4">Our <span className="text-[#0E7C66]">Services</span></h2>
           <p className="text-gray-600">
             Comprehensive interior design solutions for every need
           </p>
@@ -172,14 +172,14 @@ export function HomePage({ onNavigate }: HomePageProps) {
             'Renovation',
             'Consultation',
           ].map((service, index) => (
-            <div key={index} className="text-center p-6 border border-gray-200 rounded-lg hover:border-[#5BA8A8] transition-colors">
+            <div key={index} className="text-center p-6 border border-gray-200 rounded-lg hover:border-[#0E7C66] transition-colors">
               <h4 className="mb-2">{service}</h4>
               <p className="text-gray-600 mb-4">
                 Expert solutions tailored to your needs
               </p>
               <button
                 onClick={() => onNavigate('services')}
-                className="text-[#5BA8A8] hover:underline"
+                className="text-[#0E7C66] font-semibold hover:text-[#0A6A58] transition-colors"
               >
                 Learn More
               </button>
@@ -189,10 +189,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
       </section>
 
       {/* Testimonials */}
-      <section className="bg-[#2D3748] text-white py-20">
+      <section className="bg-[#0B1F3B] text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-[#5BA8A8] mb-4">Client Testimonials</h2>
+            <h2 className="text-[#D4AF37] text-3xl font-semibold tracking-tight mb-4">Client Testimonials</h2>
             <p className="text-gray-300">
               What our clients say about us
             </p>
@@ -200,7 +200,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-700 p-6 rounded-lg">
+              <div key={index} className="bg-white/10 p-6 rounded-2xl border border-white/10">
                 <p className="text-gray-300 mb-4 italic">"{testimonial.text}"</p>
                 <div>
                   <h4 className="text-white">{testimonial.name}</h4>

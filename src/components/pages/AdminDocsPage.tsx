@@ -90,7 +90,7 @@ export function AdminDocsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-[#2C2C2C]">Documentation & Help</h1>
+        <h1 className="text-[#0B1F3B]">Documentation & Help</h1>
         <p className="text-gray-600">Find answers to common questions and learn how to use the system</p>
       </div>
 
@@ -98,17 +98,17 @@ export function AdminDocsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md text-center">
           <BookOpen size={32} className="text-[#D4AF37] mx-auto mb-3" />
-          <h3 className="text-[#2C2C2C] mb-1">User Guide</h3>
+          <h3 className="text-[#0B1F3B] mb-1">User Guide</h3>
           <p className="text-sm text-gray-600">Complete system documentation</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md text-center">
           <HelpCircle size={32} className="text-[#D4AF37] mx-auto mb-3" />
-          <h3 className="text-[#2C2C2C] mb-1">FAQs</h3>
+          <h3 className="text-[#0B1F3B] mb-1">FAQs</h3>
           <p className="text-sm text-gray-600">Frequently asked questions</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md text-center">
           <AlertTriangle size={32} className="text-[#D4AF37] mx-auto mb-3" />
-          <h3 className="text-[#2C2C2C] mb-1">Support</h3>
+          <h3 className="text-[#0B1F3B] mb-1">Support</h3>
           <p className="text-sm text-gray-600">Get help when you need it</p>
         </div>
       </div>
@@ -125,7 +125,7 @@ export function AdminDocsPage() {
               >
                 <div className="flex items-center gap-3">
                   <Icon size={24} className="text-[#D4AF37]" />
-                  <h3 className="text-[#2C2C2C]">{section.title}</h3>
+                  <h3 className="text-[#0B1F3B]">{section.title}</h3>
                 </div>
                 {openSection === section.id ? (
                   <ChevronUp size={20} className="text-gray-400" />
@@ -139,7 +139,7 @@ export function AdminDocsPage() {
                   <div className="space-y-4">
                     {section.items.map((item, index) => (
                       <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="text-[#2C2C2C] mb-2">{item.question}</h4>
+                        <h4 className="text-[#0B1F3B] mb-2">{item.question}</h4>
                         <p className="text-gray-600">{item.answer}</p>
                       </div>
                     ))}
@@ -161,7 +161,7 @@ export function AdminDocsPage() {
           <button className="px-6 py-3 bg-white text-[#D4AF37] rounded-lg hover:bg-gray-100 transition-colors">
             Email Support
           </button>
-          <button className="px-6 py-3 bg-[#2C2C2C] text-white rounded-lg hover:bg-gray-800 transition-colors">
+          <button className="px-6 py-3 bg-[#0B1F3B] text-white rounded-lg hover:bg-gray-800 transition-colors">
             Call Support
           </button>
         </div>

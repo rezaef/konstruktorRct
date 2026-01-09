@@ -28,7 +28,7 @@ export function AdminSettingsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-[#2C2C2C]">Admin Settings</h1>
+        <h1 className="text-[#0B1F3B]">Admin Settings</h1>
         <p className="text-gray-600">Manage system settings and user access</p>
       </div>
 
@@ -40,7 +40,7 @@ export function AdminSettingsPage() {
               <Lock size={24} className="text-white" />
             </div>
             <div>
-              <h3 className="text-[#2C2C2C]">Change Password</h3>
+              <h3 className="text-[#0B1F3B]">Change Password</h3>
               <p className="text-sm text-gray-600">Update your account password</p>
             </div>
           </div>
@@ -95,7 +95,7 @@ export function AdminSettingsPage() {
               <UserPlus size={24} className="text-white" />
             </div>
             <div>
-              <h3 className="text-[#2C2C2C]">Add New Admin</h3>
+              <h3 className="text-[#0B1F3B]">Add New Admin</h3>
               <p className="text-sm text-gray-600">Create a new admin account</p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export function AdminSettingsPage() {
               <Shield size={24} className="text-white" />
             </div>
             <div>
-              <h3 className="text-[#2C2C2C]">User Management</h3>
+              <h3 className="text-[#0B1F3B]">User Management</h3>
               <p className="text-sm text-gray-600">Manage admin access and permissions</p>
             </div>
           </div>
@@ -197,7 +197,7 @@ export function AdminSettingsPage() {
             <Database size={24} className="text-white" />
           </div>
           <div>
-            <h3 className="text-[#2C2C2C]">Data Backup</h3>
+            <h3 className="text-[#0B1F3B]">Data Backup</h3>
             <p className="text-sm text-gray-600">Backup and restore system data</p>
           </div>
         </div>

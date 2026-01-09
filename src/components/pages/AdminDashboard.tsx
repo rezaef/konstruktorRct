@@ -142,7 +142,7 @@ export function AdminDashboard() {
       {/* Header + Filter */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-[#2C2C2C]">Dashboard Overview</h1>
+          <h1 className="text-[#0B1F3B]">Dashboard Overview</h1>
           <p className="text-gray-600">
             Welcome back! Here's what's happening with your projects.
           </p>
@@ -167,7 +167,7 @@ export function AdminDashboard() {
             <h4 className="text-gray-600">Total Projects</h4>
             <FolderKanban size={24} className="text-[#D4AF37]" />
           </div>
-          <p className="text-3xl text-[#2C2C2C]">{kpi.totalProjects}</p>
+          <p className="text-3xl text-[#0B1F3B]">{kpi.totalProjects}</p>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
@@ -175,7 +175,7 @@ export function AdminDashboard() {
             <h4 className="text-gray-600">Monthly Spending</h4>
             <DollarSign size={24} className="text-green-500" />
           </div>
-          <p className="text-3xl text-[#2C2C2C]">
+          <p className="text-3xl text-[#0B1F3B]">
             {formatIDR(kpi.monthlySpending)}
           </p>
           {kpi.monthlySpendingPct !== null && kpi.monthlySpendingPct !== undefined && (
@@ -191,7 +191,7 @@ export function AdminDashboard() {
             <h4 className="text-gray-600">Ongoing Projects</h4>
             <TrendingUp size={24} className="text-blue-500" />
           </div>
-          <p className="text-3xl text-[#2C2C2C]">{kpi.ongoingProjects}</p>
+          <p className="text-3xl text-[#0B1F3B]">{kpi.ongoingProjects}</p>
           <p className="text-sm text-gray-500 mt-2">
             {kpi.nearCompletion} near completion
           </p>
@@ -202,7 +202,7 @@ export function AdminDashboard() {
             <h4 className="text-gray-600">Total Expenses</h4>
             <AlertCircle size={24} className="text-orange-500" />
           </div>
-          <p className="text-3xl text-[#2C2C2C]">
+          <p className="text-3xl text-[#0B1F3B]">
             {formatIDR(kpi.totalExpenses)}
           </p>
           <p className="text-sm text-orange-600 mt-2">Monitor carefully</p>
@@ -212,7 +212,7 @@ export function AdminDashboard() {
       {/* CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-[#2C2C2C] mb-4">Monthly Expenses Overview</h3>
+          <h3 className="text-[#0B1F3B] mb-4">Monthly Expenses Overview</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={barData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -225,7 +225,7 @@ export function AdminDashboard() {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-[#2C2C2C] mb-4">Financial Report</h3>
+          <h3 className="text-[#0B1F3B] mb-4">Financial Report</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={lineData}>
               <CartesianGrid strokeDasharray="3 3" />

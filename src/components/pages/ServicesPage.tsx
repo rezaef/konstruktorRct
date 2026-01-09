@@ -75,7 +75,7 @@ export function ServicesPage() {
       {/* Introduction */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-[#5BA8A8] mb-4">What We Offer</h2>
+          <h2 className="text-[#0B1F3B] text-3xl font-semibold tracking-tight mb-4">What We Offer</h2>
           <p className="text-gray-600">
             At HDA Interior, we provide end-to-end interior design and contracting services. 
             From initial concept to final execution, our team of experts ensures every detail is 
@@ -89,7 +89,7 @@ export function ServicesPage() {
         <div className="space-y-16">
           {services.map((service, index) => {
             const Icon = service.icon;
-            const colors = ['#5BA8A8', '#E89B7C', '#9B7CB5', '#82C4A1'];
+            const colors = ['#0E7C66', '#D4AF37', '#102A4D', '#0E7C66'];
             return (
               <div
                 key={index}
@@ -101,17 +101,17 @@ export function ServicesPage() {
                   <div className="w-16 h-16 rounded-lg flex items-center justify-center mb-4" style={{backgroundColor: colors[index % colors.length]}}>
                     <Icon size={32} className="text-white" />
                   </div>
-                  <h3 className="text-[#2D3748] mb-4">{service.title}</h3>
+                  <h3 className="text-[#0B1F3B] mb-4">{service.title}</h3>
                   <p className="text-gray-600 mb-6">{service.description}</p>
                   <ul className="space-y-2 mb-6">
                     {service.features.map((feature, idx) => (
                       <li key={idx} className="flex items-center gap-2 text-gray-600">
-                        <div className="w-1.5 h-1.5 bg-[#5BA8A8] rounded-full" />
+                        <div className="w-1.5 h-1.5 bg-[#0E7C66] rounded-full" />
                         {feature}
                       </li>
                     ))}
                   </ul>
-                  <button className="px-6 py-3 bg-[#E89B7C] text-white rounded-lg hover:bg-[#D8845F] transition-colors">
+                  <button className="px-6 py-3 bg-[#D4AF37] text-white rounded-lg hover:bg-[#C19B2B] transition-colors">
                     Learn More
                   </button>
                 </div>
@@ -129,13 +129,13 @@ export function ServicesPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-r from-[#5BA8A8] to-[#4A9090] py-16">
+      <section className="bg-gradient-to-r from-[#0E7C66] to-[#0A6A58] py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-white mb-4">Ready to Transform Your Space?</h2>
           <p className="text-white/90 mb-8">
             Let's discuss your project and bring your vision to life. Our team is ready to help.
           </p>
-          <button className="px-8 py-4 bg-white text-[#5BA8A8] rounded-lg hover:bg-gray-100 transition-colors">
+          <button className="px-8 py-4 bg-white text-[#0E7C66] rounded-lg hover:bg-gray-100 transition-colors">
             Get a Free Consultation
           </button>
         </div>

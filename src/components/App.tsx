@@ -186,7 +186,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#F7F6F2] text-[#0F172A]">
       {/* Layout untuk halaman publik */}
       {isPublicPage && currentPage !== "login" && (
         <>
@@ -209,7 +209,7 @@ export default function App() {
             onNavigate={handleNavigate}
             onLogout={handleLogoutClick}
           />
-          <main className="flex-1 bg-gray-50">{renderPage()}</main>
+          <main className="flex-1 bg-[#F7F6F2]">{renderPage()}</main>
         </div>
       )}
 

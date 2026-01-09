@@ -166,7 +166,7 @@ export function ProjectDetailPage({ projectId, onNavigate }: ProjectDetailPagePr
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            <h1 className="text-[#2C2C2C] mb-4">{project.title}</h1>
+            <h1 className="text-[#0B1F3B] mb-4">{project.title}</h1>
             <p className="text-gray-600 mb-8">{project.description}</p>
 
             <div className="mb-8">
@@ -190,7 +190,7 @@ export function ProjectDetailPage({ projectId, onNavigate }: ProjectDetailPagePr
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-gray-50 p-6 rounded-lg sticky top-24">
-              <h4 className="text-[#2C2C2C] mb-6">Project Information</h4>
+              <h4 className="text-[#0B1F3B] mb-6">Project Information</h4>
 
               <div className="space-y-4">
                 <div className="flex items-start gap-3">

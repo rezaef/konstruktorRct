@@ -86,10 +86,10 @@ export function PortfolioPage({ onNavigate }: PortfolioPageProps) {
             <button
               key={category}
               onClick={() => setActiveFilter(category)}
-              className={`px-6 py-2 rounded-full transition-colors ${
+              className={`px-6 py-2 rounded-full transition-colors font-semibold text-sm ${
                 activeFilter === category
-                  ? 'bg-[#5BA8A8] text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-[#0B1F3B] text-white shadow-sm'
+                  : 'bg-white border border-[#E2E8F0] text-[#0B1F3B] hover:border-[#0E7C66] hover:bg-white'
               }`}
             >
               {category}
@@ -119,8 +119,8 @@ export function PortfolioPage({ onNavigate }: PortfolioPageProps) {
                 </div>
               </div>
               <div className="mt-4">
-                <span className="text-sm text-[#5BA8A8]">{project.category}</span>
-                <h4 className="text-[#2D3748]">{project.title}</h4>
+                <span className="text-xs font-semibold tracking-wider uppercase text-[#0E7C66]">{project.category}</span>
+                <h4 className="text-[#0B1F3B]">{project.title}</h4>
               </div>
             </div>
           ))}
@@ -130,11 +130,11 @@ export function PortfolioPage({ onNavigate }: PortfolioPageProps) {
       {/* CTA Section */}
       <section className="bg-gray-50 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-[#5BA8A8] mb-4">Want to See Your Project Here?</h2>
+          <h2 className="text-[#0B1F3B] text-3xl font-semibold tracking-tight mb-4">Want to See Your Project Here?</h2>
           <p className="text-gray-600 mb-8">
             Let's collaborate and create something extraordinary for your space
           </p>
-          <button className="px-8 py-3 bg-[#E89B7C] text-white rounded-lg hover:bg-[#D8845F] transition-colors">
+          <button className="px-8 py-3 bg-[#D4AF37] text-white rounded-lg hover:bg-[#C19B2B] transition-colors">
             Start Your Project
           </button>
         </div>

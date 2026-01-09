@@ -25,7 +25,7 @@ export function ContactPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#5BA8A8] to-[#4A9090] py-20">
+      <section className="bg-gradient-to-r from-[#0B1F3B] to-[#0E7C66] py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-white mb-4">Contact Us</h1>
           <p className="text-white/90 text-xl">
@@ -39,7 +39,7 @@ export function ContactPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           {/* Contact Form */}
           <div>
-            <h2 className="text-[#2D3748] mb-6">Send Us a Message</h2>
+            <h2 className="text-[#0B1F3B] mb-6">Send Us a Message</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-gray-700 mb-2">
@@ -52,7 +52,7 @@ export function ContactPage() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
+                  className="w-full px-4 py-3 rounded-lg border border-[#E2E8F0] focus:outline-none focus:border-[#0E7C66] focus:ring-2 focus:ring-[#D4AF37]/30"
                   placeholder="Your name"
                 />
               </div>
@@ -68,7 +68,7 @@ export function ContactPage() {
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
+                  className="w-full px-4 py-3 rounded-lg border border-[#E2E8F0] focus:outline-none focus:border-[#0E7C66] focus:ring-2 focus:ring-[#D4AF37]/30"
                   placeholder="your@email.com"
                 />
               </div>
@@ -83,7 +83,7 @@ export function ContactPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8]"
+                  className="w-full px-4 py-3 rounded-lg border border-[#E2E8F0] focus:outline-none focus:border-[#0E7C66] focus:ring-2 focus:ring-[#D4AF37]/30"
                   placeholder="+62 xxx xxxx xxxx"
                 />
               </div>
@@ -99,14 +99,14 @@ export function ContactPage() {
                   onChange={handleChange}
                   required
                   rows={6}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-[#5BA8A8] resize-none"
+                  className="w-full px-4 py-3 rounded-lg border border-[#E2E8F0] focus:outline-none focus:border-[#0E7C66] focus:ring-2 focus:ring-[#D4AF37]/30 resize-none"
                   placeholder="Tell us about your project..."
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full px-6 py-4 bg-[#E89B7C] text-white rounded-lg hover:bg-[#D8845F] transition-colors flex items-center justify-center gap-2"
+                className="w-full px-6 py-4 bg-[#0E7C66] text-white rounded-lg hover:bg-[#0A6A58] transition-colors flex items-center justify-center gap-2 font-semibold shadow-sm"
               >
                 <Send size={20} />
                 Send Message
@@ -116,7 +116,7 @@ export function ContactPage() {
 
           {/* Contact Info */}
           <div>
-            <h2 className="text-[#2D3748] mb-6">Get In Touch</h2>
+            <h2 className="text-[#0B1F3B] mb-6">Get In Touch</h2>
             <p className="text-gray-600 mb-8">
               Have questions about our services or want to discuss your project? 
               We're here to help! Reach out to us through any of the following channels.
@@ -124,11 +124,11 @@ export function ContactPage() {
 
             <div className="space-y-6 mb-8">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#5BA8A8] rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-[#0E7C66] rounded-lg flex items-center justify-center flex-shrink-0">
                   <MapPin size={24} className="text-white" />
                 </div>
                 <div>
-                  <h4 className="text-[#2D3748] mb-1">Office Location</h4>
+                  <h4 className="text-[#0B1F3B] mb-1">Office Location</h4>
                   <p className="text-gray-600">
                     Jl. Beji Pdam, Pakal<br />
                     Kec. Pakal, Surabaya<br />
@@ -138,29 +138,29 @@ export function ContactPage() {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#5BA8A8] rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-[#0E7C66] rounded-lg flex items-center justify-center flex-shrink-0">
                   <Phone size={24} className="text-white" />
                 </div>
                 <div>
-                  <h4 className="text-[#2D3748] mb-1">Phone</h4>
+                  <h4 className="text-[#0B1F3B] mb-1">Phone</h4>
                   <p className="text-gray-600">+62 817 0317 7030</p>
                   <p className="text-gray-600">+62 811 3011 224</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-[#5BA8A8] rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-12 h-12 bg-[#0E7C66] rounded-lg flex items-center justify-center flex-shrink-0">
                   <Mail size={24} className="text-white" />
                 </div>
                 <div>
-                  <h4 className="text-[#2D3748] mb-1">Email</h4>
+                  <h4 className="text-[#0B1F3B] mb-1">Email</h4>
                   <p className="text-gray-600">hda.interiordesign@gmail.com</p>
                 </div>
               </div>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg">
-              <h4 className="text-[#2D3748] mb-2">Office Hours</h4>
+              <h4 className="text-[#0B1F3B] mb-2">Office Hours</h4>
               <p className="text-gray-600">Monday - Friday: 9:00 AM - 6:00 PM</p>
               <p className="text-gray-600">Saturday: 10:00 AM - 4:00 PM</p>
               <p className="text-gray-600">Sunday: Closed</p>

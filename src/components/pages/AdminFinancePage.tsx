@@ -261,7 +261,7 @@ export function AdminFinancePage() {
       {/* Header */}
       <div className="flex flex-col gap-3 md:flex-row md:justify-between md:items-center mb-8">
         <div>
-          <h1 className="text-[#2C2C2C]">Finance & Reports</h1>
+          <h1 className="text-[#0B1F3B]">Finance & Reports</h1>
           <p className="text-gray-600">Cash out monitoring & expense reports</p>
         </div>
 
@@ -339,14 +339,14 @@ export function AdminFinancePage() {
             <h4 className="text-gray-600">Total Cash Out ({year})</h4>
             <TrendingDown size={22} className="text-red-500" />
           </div>
-          <p className="text-3xl text-[#2C2C2C] mb-1">Rp {fmtRp(totalCashout)}</p>
+          <p className="text-3xl text-[#0B1F3B] mb-1">Rp {fmtRp(totalCashout)}</p>
           <p className="text-sm text-red-600">Year to date</p>
         </div>
       </div>
 
       {/* Chart */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-        <h3 className="text-[#2C2C2C] mb-6">Monthly Cash Out</h3>
+        <h3 className="text-[#0B1F3B] mb-6">Monthly Cash Out</h3>
 
         {!loading && monthlyCashout.length === 0 ? (
           <div className="text-gray-600">Belum ada data cashout untuk ditampilkan.</div>
@@ -366,7 +366,7 @@ export function AdminFinancePage() {
       {/* Table */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="p-6 border-b">
-          <h3 className="text-[#2C2C2C]">Cash Out Transactions</h3>
+          <h3 className="text-[#0B1F3B]">Cash Out Transactions</h3>
           <p className="text-gray-500 text-sm mt-1">
             Menampilkan transaksi cashout untuk <b>{projectSheet || "-"}</b> tahun <b>{year}</b>.
           </p>

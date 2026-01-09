@@ -117,7 +117,7 @@ export function AdminMaterialsPage() {
     <div className="p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-[#2C2C2C]">Material & Inventory</h1>
+          <h1 className="text-[#0B1F3B]">Material & Inventory</h1>
           <p className="text-gray-600">Manage purchases and track inventory assets</p>
         </div>
         <div className="flex gap-3">

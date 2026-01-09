@@ -19,11 +19,11 @@ export function AdminSidebar({ currentPage, onNavigate, onLogout }: AdminSidebar
   ];
 
   return (
-    <div className="w-64 bg-[#2D3748] text-white min-h-screen flex flex-col">
-      <div className="p-6 border-b border-gray-700">
+    <div className="w-64 bg-[#0B1F3B] text-white min-h-screen flex flex-col">
+      <div className="p-6 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <img src={hdaLogo} alt="HDA Logo" className="h-10 w-10" />
-          <h2 className="text-[#5BA8A8]">HDA Admin</h2>
+          <img src={hdaLogo} alt="HDA Logo" className="h-10 w-10 rounded-lg ring-1 ring-white/20 bg-white" />
+          <h2 className="text-[#D4AF37] font-semibold tracking-tight">HDA Admin</h2>
         </div>
       </div>
 
@@ -37,8 +37,8 @@ export function AdminSidebar({ currentPage, onNavigate, onLogout }: AdminSidebar
                   onClick={() => onNavigate(item.path)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
                     currentPage === item.path
-                      ? 'bg-[#5BA8A8] text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
+                      ? 'bg-white/10 text-white border border-[#D4AF37]/40'
+                      : 'text-gray-300 hover:bg-white/5'
                   }`}
                 >
                   <Icon size={20} />

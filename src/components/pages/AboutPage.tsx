@@ -38,7 +38,7 @@ export function AboutPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
-            <h2 className="text-[#5BA8A8] mb-6">Our Story</h2>
+            <h2 className="text-[#0B1F3B] text-3xl font-semibold tracking-tight mb-6">Our Story</h2>
             <p className="text-gray-600 mb-4">
               Founded in 2010, HDA Interior began with a simple mission: to create beautiful, 
               functional spaces that enhance the way people live and work. What started as a small 
@@ -85,10 +85,10 @@ export function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-white p-8 rounded-lg shadow-md">
-              <div className="w-14 h-14 bg-[#5BA8A8] rounded-full flex items-center justify-center mb-4">
+              <div className="w-14 h-14 bg-[#0E7C66] rounded-full flex items-center justify-center mb-4">
                 <Target size={28} className="text-white" />
               </div>
-              <h3 className="text-[#2D3748] mb-4">Our Mission</h3>
+              <h3 className="text-[#0B1F3B] mb-4">Our Mission</h3>
               <p className="text-gray-600">
                 To transform spaces into beautiful, functional environments that exceed our clients' 
                 expectations through innovative design, quality craftsmanship, and exceptional service.
@@ -96,10 +96,10 @@ export function AboutPage() {
             </div>
 
             <div className="bg-white p-8 rounded-lg shadow-md">
-              <div className="w-14 h-14 bg-[#E89B7C] rounded-full flex items-center justify-center mb-4">
+              <div className="w-14 h-14 bg-[#D4AF37] rounded-full flex items-center justify-center mb-4">
                 <Eye size={28} className="text-white" />
               </div>
-              <h3 className="text-[#2D3748] mb-4">Our Vision</h3>
+              <h3 className="text-[#0B1F3B] mb-4">Our Vision</h3>
               <p className="text-gray-600">
                 To be the leading interior design and contracting firm recognized for creating 
                 sustainable, innovative spaces that inspire and enhance the quality of life.
@@ -107,10 +107,10 @@ export function AboutPage() {
             </div>
 
             <div className="bg-white p-8 rounded-lg shadow-md">
-              <div className="w-14 h-14 bg-[#9B7CB5] rounded-full flex items-center justify-center mb-4">
+              <div className="w-14 h-14 bg-[#102A4D] rounded-full flex items-center justify-center mb-4">
                 <Heart size={28} className="text-white" />
               </div>
-              <h3 className="text-[#2D3748] mb-4">Our Values</h3>
+              <h3 className="text-[#0B1F3B] mb-4">Our Values</h3>
               <p className="text-gray-600">
                 Excellence, integrity, creativity, collaboration, and sustainability guide everything 
                 we do. We're committed to delivering outstanding results while building lasting relationships.
@@ -127,10 +127,10 @@ export function AboutPage() {
             const Icon = stat.icon;
             return (
               <div key={index} className="text-center">
-                <div className="w-20 h-20 bg-[#5BA8A8] rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-20 h-20 bg-[#0E7C66] rounded-full flex items-center justify-center mx-auto mb-4">
                   <Icon size={40} className="text-white" />
                 </div>
-                <h2 className="text-4xl text-[#2D3748] mb-2">{stat.value}</h2>
+                <h2 className="text-4xl text-[#0B1F3B] mb-2">{stat.value}</h2>
                 <p className="text-gray-600">{stat.label}</p>
               </div>
             );
@@ -139,10 +139,10 @@ export function AboutPage() {
       </section>
 
       {/* Team */}
-      <section className="bg-[#2D3748] text-white py-20">
+      <section className="bg-[#0B1F3B] text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-[#5BA8A8] mb-4">Meet Our Team</h2>
+            <h2 className="text-[#0B1F3B] text-3xl font-semibold tracking-tight mb-4">Meet Our Team</h2>
             <p className="text-gray-300">
               Talented professionals dedicated to bringing your vision to life
             </p>
@@ -155,7 +155,7 @@ export function AboutPage() {
                   <Users size={64} className="text-gray-500" />
                 </div>
                 <h4 className="text-white mb-1">{member.name}</h4>
-                <p className="text-[#5BA8A8] mb-1">{member.role}</p>
+                <p className="text-[#0E7C66] font-semibold mb-1">{member.role}</p>
                 <p className="text-gray-400">{member.experience} experience</p>
               </div>
             ))}
