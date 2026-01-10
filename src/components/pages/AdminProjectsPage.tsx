@@ -1,4 +1,4 @@
-import { Plus, Edit, Trash2, Search } from "lucide-react";
+import { Plus, Trash2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 const API_BASE = "http://localhost:4000";
@@ -254,9 +254,9 @@ export function AdminProjectsPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <button className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit (next)">
+                      {/* <button className="p-2 text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit (next)">
                         <Edit size={18} />
-                      </button>
+                      </button> */}
                       <button
                         onClick={() => deleteProject(p.name)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"

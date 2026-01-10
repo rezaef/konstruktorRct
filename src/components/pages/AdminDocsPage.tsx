@@ -20,11 +20,11 @@ export function AdminDocsPage() {
         },
         {
           question: 'How to navigate the dashboard?',
-          answer: 'Use the sidebar menu to navigate between different sections: Dashboard, Projects, Finance, Materials, Settings, and Documentation.',
+          answer: 'Use the sidebar menu to navigate between different sections: Dashboard, Projects, Finance, and Documentation.',
         },
         {
           question: 'What are the main features?',
-          answer: 'The system includes project management, financial tracking, material inventory, team management, and comprehensive reporting tools.',
+          answer: 'The system includes project management, financial tracking, and comprehensive reporting tools.',
         },
       ],
     },
