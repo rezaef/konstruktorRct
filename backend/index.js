@@ -12,7 +12,8 @@ const jwt = require("jsonwebtoken");
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+// Support env lama: xPORT (opsional)
+const PORT = process.env.PORT || process.env.xPORT || 4000;
 
 // ============ MIDDLEWARE ============
 app.use(
@@ -35,6 +36,37 @@ const auth = new google.auth.GoogleAuth({
 });
 
 const sheets = google.sheets({ version: "v4", auth });
+
+// ============ GOOGLE DRIVE SETUP (UNTUK BACKUP FILE SPREADSHEET) =========
+// Kamu bisa pakai 2 mode auth:
+// A) Service Account (default) -> perlu share akses file/folder ke email service account
+// B) OAuth User (opsi B) -> pakai akun Google kamu sendiri, jadi kuota & My Drive milik user
+//    Aktif kalau env DRIVE_OAUTH_* terisi.
+
+function createDriveClient() {
+  const clientId = (process.env.DRIVE_OAUTH_CLIENT_ID || "").trim();
+  const clientSecret = (process.env.DRIVE_OAUTH_CLIENT_SECRET || "").trim();
+  const redirectUri = (process.env.DRIVE_OAUTH_REDIRECT_URI || "http://localhost").trim();
+  const refreshToken = (process.env.DRIVE_OAUTH_REFRESH_TOKEN || "").trim();
+
+  // Mode OAuth (user)
+  if (clientId && clientSecret && refreshToken) {
+    const oAuth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+    oAuth2Client.setCredentials({ refresh_token: refreshToken });
+    console.log("Drive auth mode: OAuth (user)");
+    return google.drive({ version: "v3", auth: oAuth2Client });
+  }
+
+  // Default: Service Account
+  const driveAuth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ["https://www.googleapis.com/auth/drive"],
+  });
+  console.log("Drive auth mode: Service Account");
+  return google.drive({ version: "v3", auth: driveAuth });
+}
+
+const drive = createDriveClient();
 
 const SPREADSHEET_ID = process.env.SHEET_ID;
 const SHEET_NAME = process.env.SHEET_NAME || "Sheet1";
@@ -416,6 +448,49 @@ app.get("/auth/me", authenticate, (req, res) => {
     success: true,
     user: req.user,
   });
+});
+
+// BACKUP SPREADSHEET (PROTECTED)
+// Duplikasi file Google Sheet (SHEET_ID) ke folder Drive (BACKUP_FOLDER_ID)
+app.post("/backup/spreadsheet", authenticate, async (req, res) => {
+  try {
+    const backupFolderId = (process.env.BACKUP_FOLDER_ID || "").trim();
+
+    if (!backupFolderId) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "BACKUP_FOLDER_ID belum di-set di .env. Buat folder backup di Google Drive lalu isi BACKUP_FOLDER_ID dan share foldernya ke email service account.",
+      });
+    }
+
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    const prefix = (req.body?.namePrefix || "backup").toString().trim();
+    const backupName = `${prefix}-${SHEET_NAME}-${ts}`;
+
+    const copyResp = await drive.files.copy({
+      fileId: SPREADSHEET_ID,
+      supportsAllDrives: true,
+      requestBody: {
+        name: backupName,
+        parents: [backupFolderId],
+      },
+      fields: "id,name,webViewLink,createdTime",
+    });
+
+    return res.json({
+      success: true,
+      message: "Backup spreadsheet berhasil dibuat di Google Drive.",
+      backup: copyResp.data,
+    });
+  } catch (e) {
+    console.error("POST /backup/spreadsheet error:", e?.response?.data || e);
+    return res.status(500).json({
+      success: false,
+      message:
+        e?.response?.data?.error?.message || e.message || "Gagal membuat backup spreadsheet.",
+    });
+  }
 });
 
 // GET REKAP (PROTECTED)

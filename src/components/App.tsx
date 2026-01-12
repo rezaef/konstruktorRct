@@ -23,6 +23,7 @@ import { AdminMaterialsPage } from "./pages/AdminMaterialsPage";
 import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { AdminDocsPage } from "./pages/AdminDocsPage";
 import { AdminRecapPage } from "./pages/AdminRecapPage"; 
+import { AdminBackupPage } from "./pages/AdminBackupPage";
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState("home");
@@ -37,6 +38,7 @@ export default function App() {
   "/settings": "admin-settings",
   "/documentation": "admin-docs",
   "/rekapitulasi": "admin-recap",
+  "/backup": "admin-backup",
 };
 
 
@@ -142,6 +144,7 @@ export default function App() {
     "admin-settings",
     "admin-docs",
     "admin-recap", // <-- DITAMBAHKAN
+    "admin-backup",
   ];
   const isAdminPage = adminPages.includes(currentPage);
 
@@ -176,6 +179,9 @@ export default function App() {
         return <AdminDocsPage />;
       case "admin-recap": // <-- DITAMBAHKAN
         return <AdminRecapPage />;
+
+      case "admin-backup":
+        return <AdminBackupPage />;
 
       default:
         if (currentPage.startsWith("project-")) {

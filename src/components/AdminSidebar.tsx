@@ -1,4 +1,4 @@
-import { LayoutDashboard, FolderKanban, DollarSign, BookOpen, LogOut, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, FolderKanban, DollarSign, BookOpen, LogOut, FileSpreadsheet, CloudUpload } from 'lucide-react';
 import hdaLogo from "../assets/login-bg.png";
 
 interface AdminSidebarProps {
@@ -11,6 +11,7 @@ export function AdminSidebar({ currentPage, onNavigate, onLogout }: AdminSidebar
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: 'admin-dashboard' },
     { icon: FileSpreadsheet, label: 'Rekapitulasi', path: 'admin-recap' },
+    { icon: CloudUpload, label: 'Backup', path: 'admin-backup' },
     { icon: FolderKanban, label: 'Projects', path: 'admin-projects' },
     { icon: DollarSign, label: 'Finance', path: 'admin-finance' },
     // { icon: Package, label: 'Materials', path: 'admin-materials' },
