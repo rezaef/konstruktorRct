@@ -168,15 +168,57 @@ export function ContactPage() {
           </div>
         </div>
       </section>
-
       {/* Map Section */}
       <section className="bg-gray-100 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-300 h-[400px] rounded-lg flex items-center justify-center">
-            <p className="text-gray-600">Map Location - Surabaya Office</p>
-          </div>
+          {(() => {
+            const mapQuery =
+              'QJ46+G7 Pakal, Surabaya, Jawa Timur, Jl. Beji Pdam, Pakal, Kec. Pakal, Surabaya, Jawa Timur 60196';
+
+            const embedSrc = `https://www.google.com/maps?q=${encodeURIComponent(
+              mapQuery
+            )}&output=embed`;
+
+            const openMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+              mapQuery
+            )}`;
+
+            return (
+              <div className="overflow-hidden rounded-lg shadow-sm bg-white">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                  <div>
+                    <p className="text-sm font-semibold text-[#0B1F3B]">Map Location</p>
+                    <p className="text-xs text-gray-600">QJ46+G7 Pakal, Surabaya</p>
+                  </div>
+
+                  <a
+                    href={openMapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-semibold text-[#0E7C66] hover:underline"
+                  >
+                    Open in Google Maps
+                  </a>
+                </div>
+
+                <div className="h-[400px] w-full">
+                  <iframe
+                    title="Office Location Map"
+                    src={embedSrc}
+                    width="100%"
+                    height="100%"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    className="border-0"
+                    allowFullScreen
+                  />
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
+
     </div>
   );
 }
